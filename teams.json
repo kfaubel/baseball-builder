@@ -1,0 +1,189 @@
+{
+    "ARI" : {
+        "name": "Arizona Diamondbacks",
+        "color1": "#A71930",
+        "color2": "#E3D4AD",
+        "color3": "#E3D4AD"
+    },
+    "ATL" : {
+        "name": "Atlanta Braves",
+        "color1": "#13274F",
+        "color2": "#CE1141",
+        "color3": "#FFFFFF"
+    },
+    "BAL" : {
+        "name": "Baltimore Orioles",
+        "color1": "#DF4601",
+        "color2": "#000000",
+        "color3": "#FFFFFF"
+    },
+    "BOS" : {
+        "name": "Boston Red Sox",
+        "color1": "#BD3039",
+        "color2": "#0C2340",
+        "color3": "#FFFFFF"
+    },
+    "CHC" : {
+        "name": "Chicago Cubs",
+        "color1": "#0E3386",
+        "color2": "#CC3433",
+        "color3": "#FFFFFF"
+    },
+    "CWS" : {
+        "name": "Chicago White Sox",
+        "color1": "#27251F",
+        "color2": "#C4CED4",
+        "color3": "#C4CED4"
+    },
+    "CIN" : {
+        "name": "Cincinnati Reds",
+        "color1": "#C6011F",
+        "color2": "#000000",
+        "color3": "#FFFFFF"
+    },
+    "COL" : {
+        "name": "Colorado Rockies",
+        "color1": "#33006F",
+        "color2": "#C4CED4",
+        "color3": "#C4CED4"
+    },
+    "CLE" : {
+        "name": "Cleveland Indians",
+        "color1": "#0C2340",
+        "color2": "#E31937",
+        "color3": "#FFFFFF"
+    },
+    "DET" : {
+        "name": "Detroit Tigers",
+        "color1": "#0C2340",
+        "color2": "#FA4616",
+        "color3": "#FFFFFF"
+    },
+    "HOU" : {
+        "name": "Houston Astros",
+        "color1": "#002D62",
+        "color2": "#EB6E1F",
+        "color3": "#F4911E"
+    },
+    "KC" : {
+        "name": "Kansas City Royals",
+        "color1": "#004687",
+        "color2": "#BD9B60",
+        "color3": "#BD9B60"
+    },
+    "LAA" : {
+        "name": "Los Angeles Angels of Anaheim",
+        "color1": "#BA0021",
+        "color2": "#003263",
+        "color3": "#C4CED4"
+    },
+    "LAD" : {
+        "name": "Los Angeles Dodgers",
+        "color1": "#005A9C",
+        "color2": "#FFFFFF",
+        "color3": "#FFFFFF"
+    },
+    "MIA" : {
+        "name": "Miami Marlins",
+        "color1": "#000000",
+        "color2": "#00A3E0",
+        "color3": "#EF3340"
+    },
+    "MIL" : {
+        "name": "Milwaukee Brewers",
+        "color1": "#0A2351",
+        "color2": "#B6922E",
+        "color3": "#B6922E"
+    },
+    "MIN" : {
+        "name": "Minnesota Twins",
+        "color1": "#002B5C",
+        "color2": "#D31145",
+        "color3": "#B9975B"
+    },
+    "NYM" : {
+        "name": "New York Mets",
+        "color1": "#002D72",
+        "color2": "#FF5910",
+        "color3": "#FFFFFF"
+    },
+    "NYY" : {
+        "name": "New York Yankees",
+        "color1": "#003087",
+        "color2": "#E4002C",
+        "color3": "#FFFFFF"
+    },
+    "OAK" : {
+        "name": "Oakland Athletics",
+        "color1": "#003831",
+        "color2": "#EFB21E",
+        "color3": "#EFB21E"
+    },
+    "PHI" : {
+        "name": "Philadelphia Phillies",
+        "color1": "#E81828",
+        "color2": "#002D72",
+        "color3": "#FFFFFF"
+    },
+    "PIT" : {
+        "name": "Pittsburgh Pirates",
+        "color1": "#27251F",
+        "color2": "#FDB827",
+        "color3": "#FDB827"
+    },
+    "SD" : {
+        "name": "San Diego Padres",
+        "color1": "#002D62",
+        "color2": "#FFFFFF",
+        "color3": "#FFFFFF"
+    },
+    "SF" : {
+        "name": "San Francisco Giants",
+        "color1": "#27251F",
+        "color2": "#FD5A1E",
+        "color3": "#EFD19F"
+    },
+    "SEA" : {
+        "name": "Seattle Mariners",
+        "color3": "#C4CED4",
+        "color2": "#005C5C",
+        "color1": "#0C2C56"
+    },
+    "STL" : {
+        "name": "St Louis Cardinals",
+        "color3": "#0C2340",
+        "color2": "#FEDB00",
+        "color1": "#C41E3A"
+    },
+    "TB" : {
+        "name": "Tampa Bay Rays",
+        "color1": "#092C5C",
+        "color2": "#8FBCE6",
+        "color3": "#F5D130"
+    },
+    "TEX" : {
+        "name": "Texas Rangers",
+        "color1": "#003278",
+        "color2": "#C0111F",
+        "color3": "#FFFFFF"
+    },
+    "TOR" : {
+        "name": "Toronto Blue Jays",
+        "color1": "#134A8E",
+        "color2": "#E8291C",
+        "color3": "#FFFFFF"
+    },
+    "WSH" : {
+        "name": "Washington Nationals",        
+        "color1": "#AB0003",
+        "color2": "#FFFFFF",
+        "color3": "#14225A"
+    },
+    "FENWAY" : {
+        "name": "Boston Red Sox", 
+        "redirect": "BOS",       
+        "color1": "#4f7359",
+        "color2": "#E0E0E0",
+        "color3": "#E0E0E0"
+    }
+}
