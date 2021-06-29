@@ -24,10 +24,10 @@ export class Cache {
                 return object;
             } else {
                 // object expired
-                //this.logger.verbose("Cache: Key: " + key + " - cache expired");
+                // this.logger.verbose("Cache: Key: " + key + " - cache expired");
             }
         } else {
-            //this.logger.verbose("Cache: Key: " + key + " - cache miss");
+            // this.logger.verbose("Cache: Key: " + key + " - cache miss");
         }
 
         return null;
@@ -36,6 +36,8 @@ export class Cache {
     public set(key: string, newObject: any, expirationTime: number) {
         const cacheItem = {expiration: expirationTime, object: newObject}
         this.cacheStorage[key] =  cacheItem;
+
+        //fs.writeFileSync("cache.json", JSON.stringify(this.cacheStorage, null, 4));
     }
 
     // static async saveCache() {

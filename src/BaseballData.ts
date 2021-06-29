@@ -1,57 +1,66 @@
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
 
-const convert = require('xml-js');
-const axios = require('axios');
-const fs = require('fs');
+const convert = require("xml-js");
+const axios = require("axios");
+const fs = require("fs");
 
-import { Cache } from "./Cache"; 
+//import { Cache } from "./Cache";
 
-// Onset" https://forecast.baseball.gov/MapClick.php?lat=41.7476&lon=-70.6676&FcstType=digitalDWML
-// NOLA   https://forecast.baseball.gov/MapClick.php?lat=29.9537&lon=-90.0777&FcstType=digitalDWML
+// From a post on reddit.   This may be what's next
+// You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
+// http requests during the season and working backwards.
+// Here are some endpoints:
+// MLB Schedule - http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1
+// MLB Schedule for April 10th, 2018 - http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=04/10/2018
+// Rays v. White Sox Live Feed - http://statsapi.mlb.com//api/v1/game/529572/feed/live
+// Rays v. White Sox Boxscore - http://statsapi.mlb.com//api/v1/game/529572/boxscore
+// Rays v. White Sox Linescore - http://statsapi.mlb.com//api/v1/game/529572/linescore
+// Once you start poking around you can figure things out. You can also get scores from offseason leagues.
+// For example, here is a score from a game today: http://statsapi.mlb.com//api/v1/game/569984/feed/live
 
 // New data source : https://www.baseball.gov/documentation/services-web-api
 // Not all data is present
 
 // Key elements in a game object
-    // "away_file_code": "la",     
-    // "away_loss": "33",          
-    // "away_name_abbrev": "LAD",  
-    // "away_team_runs": "",       
-    // "away_time": "4:05",        
-    // "away_win": "63",           
-    // "game_type": "R",           
-    // "home_loss": "46",          
-    // "home_name_abbrev": "PHI",  
-    // "home_team_runs": "",       
-    // "home_win": "48",           
-    // "inning": "",               
-    // "series": "Regular Season", 
-    // "status": "Scheduled",      
-    // "top_inning": "N"           
+// "away_file_code": "la",
+// "away_loss": "33",
+// "away_name_abbrev": "LAD",
+// "away_team_runs": "",
+// "away_time": "4:05",
+// "away_win": "63",
+// "game_type": "R",
+// "home_loss": "46",
+// "home_name_abbrev": "PHI",
+// "home_team_runs": "",
+// "home_win": "48",
+// "inning": "",
+// "series": "Regular Season",
+// "status": "Scheduled",
+// "top_inning": "N"
 
 export class BaseballData {
     private logger;
     private cache;
 
-    constructor(logger: any) {
+    constructor(logger: any, cache: any) {
         this.logger = logger;
-        this.cache = new Cache(logger);
+        this.cache = cache;
     }
-    
-    public async getDate(gameDate, theTeam: string) {        
+
+    public async getDate(gameDate, theTeam: string) {
         const gameDayObj: any = {
-            year: gameDate.getFullYear(),                            // 2019
-            
-            month: ('00' + (gameDate.getMonth() +1)).slice(-2),      // 10       getMonth() returns 0-11
-            day: ('00' + gameDate.getDate()).slice(-2),              // 04       *clever* way to prepend leading 0s
-            games: [] as any[] // Not very satisfying but does prevent an inferred "never" error below
-        }
-        
+            year: gameDate.getFullYear(), // 2019
+
+            month: ("00" + (gameDate.getMonth() + 1)).slice(-2), // 10       getMonth() returns 0-11
+            day: ("00" + gameDate.getDate()).slice(-2), // 04       *clever* way to prepend leading 0s
+            games: [] as any[], // Not very satisfying but does prevent an inferred "never" error below
+        };
+
         const key = gameDayObj.year + "_" + gameDayObj.month + "_" + gameDayObj.day;
 
         let baseballJson: any = null;
-        
+
         baseballJson = this.cache.get(key);
 
         if (baseballJson !== null) {
@@ -61,8 +70,9 @@ export class BaseballData {
 
             this.logger.info(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
             // this.logger.info("BaseballData: URL: " + url);
-        
-            await axios.get(url)
+
+            await axios
+                .get(url)
                 .then((response: any) => {
                     baseballJson = response.data;
 
@@ -78,7 +88,7 @@ export class BaseballData {
                                     anyActive = true;
                                     break;
                                 case "Warmup":
-                                case "Pre-game":                    
+                                case "Pre-game":
                                 case "Preview":
                                 case "Scheduled":
                                     anyStillToPlay = true;
@@ -99,7 +109,7 @@ export class BaseballData {
                     let expirationMs: number = nowMs + 6 * 60 * 60 * 1000; // 6 hours
 
                     if (anyActive) {
-                        expirationMs = nowMs +  5 * 60 * 1000; // 5 minutes
+                        expirationMs = nowMs + 5 * 60 * 1000; // 5 minutes
                     } else if (anyStillToPlay) {
                         expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
                     }
@@ -110,51 +120,56 @@ export class BaseballData {
                     // handle error
                     // tslint:disable-next-line:no-console
                     this.logger.error("BaseballData: Error: " + error + " " + error.stack);
-                })            
-            }
-            const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            const months   = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                });
+        }
 
-            try {
-                if (baseballJson !== null && Array.isArray(baseballJson.data.games.game)) {
-                    let game: any = null;
-                    for (game of baseballJson.data.games.game) {
-                        if (game.away_name_abbrev === theTeam || game.home_name_abbrev === theTeam) {
-                            //this.logger.log("BaseballData: Game Day: " + theTeam + " " + JSON.stringify(game.id, null, 4));
-                            game.day = weekdays[gameDate.getDay()];
-                            game.date = months[gameDate.getMonth()] + " " + gameDate.getDate();
-                        
-                            // fix up game time (missing in spring training games)
-                            if (typeof game.away_time === 'undefined') {
-                                game.away_time = game.event_time;
-                                game.home_time = game.event_time;
-                            }
-                            
-                            // fix up runs (missing in spring training games)
-                            if (typeof game.home_team_runs === 'undefined') {
-                                game.home_team_runs = game.home_score;
-                                game.away_team_runs = game.away_score;
-                            }
+        // We have a valid baseballJson
 
-                            gameDayObj.games.push(game);
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        try {
+            if (baseballJson !== null && Array.isArray(baseballJson.data.games.game)) {
+                let game: any = null;
+                for (game of baseballJson.data.games.game) {
+                    if (game.away_name_abbrev === theTeam || game.home_name_abbrev === theTeam) {
+                        //this.logger.log("BaseballData: Game Day: " + theTeam + " " + JSON.stringify(game.id, null, 4));
+
+                        // the day and date for later
+                        game.day = weekdays[gameDate.getDay()];
+                        game.date = months[gameDate.getMonth()] + " " + gameDate.getDate();
+
+                        // fix up game time (missing in spring training games)
+                        if (typeof game.away_time === "undefined") {
+                            game.away_time = game.event_time;
+                            game.home_time = game.event_time;
                         }
+
+                        // fix up runs (missing in spring training games)
+                        if (typeof game.home_team_runs === "undefined") {
+                            game.home_team_runs = game.home_score;
+                            game.away_team_runs = game.away_score;
+                        }
+
+                        gameDayObj.games.push(game);
                     }
                 }
-            } catch (e) {
-                this.logger.error("BaseballData: Error processing, baseballJson from site.  Did the result format change?");
             }
-
-            // For whatever reason
-            if (gameDayObj.games.length === 0) {
-                const dayStr = weekdays[gameDate.getDay()];
-                const dateStr = months[gameDate.getMonth()] + " " + gameDate.getDate();
-                const game = {status: "OFF", day: dayStr, date: dateStr};
-                gameDayObj.games.push(game);
-            }
-
-            // tslint:disable-next-line:no-console
-            // console.log("Game Day: " + JSON.stringify(gameDayObj, null, 4));
-            
-            return gameDayObj;
+        } catch (e) {
+            this.logger.error("BaseballData: Error processing, baseballJson from site.  Did the result format change?");
         }
+
+        // For whatever reason
+        if (gameDayObj.games.length === 0) {
+            const dayStr = weekdays[gameDate.getDay()];
+            const dateStr = months[gameDate.getMonth()] + " " + gameDate.getDate();
+            const game = { status: "OFF", day: dayStr, date: dateStr };
+            gameDayObj.games.push(game);
+        }
+
+        // tslint:disable-next-line:no-console
+        // console.log("Game Day: " + JSON.stringify(gameDayObj, null, 4));
+
+        return gameDayObj;
+    }
 }

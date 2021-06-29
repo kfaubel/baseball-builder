@@ -5,16 +5,19 @@ import util = require('util');
 
 import { Logger } from "./Logger";
 import { BaseballImage } from './BaseballImage';
+import { Cache } from "./Cache";
 
 const teamTable = require('../teams.json');
 
 const logger = new Logger(null, "test");
 
-fs.mkdirSync(__dirname + '/../teams/', { recursive: true })
+fs.mkdirSync(__dirname + '/../teams/', { recursive: true });
+
+const cache = new Cache(logger);
 
 // Create a new express application instance
 async function run() {
-    const baseballImage = new BaseballImage(new Logger(null, "baseball-builder"));
+    const baseballImage = new BaseballImage(new Logger(null, "baseball-builder"), cache);
     const teams = Object.keys(teamTable);
 
     for (let team of teams) 
@@ -24,7 +27,7 @@ async function run() {
     
         const result = await baseballImage.getImageStream(team);
     
-        logger.info(`Test: Writing from data: ./teams/${team}.jpg`);
+        logger.info(`Test:   Writing from data: ./teams/${team}.jpg`);
         // We now get result.jpegImg
         fs.writeFileSync(__dirname +'/../teams/' + team + '.jpg', result.jpegImg.data);
 
