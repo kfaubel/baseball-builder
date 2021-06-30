@@ -80,6 +80,7 @@ export class BaseballData {
 
                     let anyActive: boolean = false;
                     let anyStillToPlay: boolean = false;
+                    let noGames: boolean = false;
 
                     if (Array.isArray(baseballJson.data.games.game)) {
                         for (const game of baseballJson.data.games.game) {
@@ -97,23 +98,34 @@ export class BaseballData {
                                 case "Game Over":
                                     break;
                                 default:
+                                    this.logger.warn(`Found new game status: ${game.status}`)
                                     anyStillToPlay = true;
                                     break;
                             }
                         }
                     } else {
                         this.logger.info("BaseballData: No games");
+                        noGames = true;
                     }
                     
-                    let midnight = new Date().setHours(0,0,0,0);
+                    let midnightThisMorning = new Date().setHours(0,0,0,0);
+                    let midnightTonight = new Date().setHours(23,59,59,0);
                      
                     const nowMs: number = new Date().getTime();
                     let expirationMs: number; 
 
-                    if (gameDate < midnight) {
-                        expirationMs = nowMs + 100 * 365 * 24 * 60 * 60 * 1000; // previous day so never expires (100 years from now)
-                    } else if (anyActive) {
+                    // If any games for this day are still active, keep checking
+                    // If the games were yesterday (and finished), they never expire
+                    // if the games are tomorrow, check early tomorrow
+                    // If the games are still to play (Warmup, ...) check in 30 minutes
+                    // Everything else we will check in 6 hours.
+
+                    if (anyActive) {
                         expirationMs = nowMs + 5 * 60 * 1000; // 5 minutes
+                    } else if (gameDate < midnightThisMorning  || noGames) {
+                        expirationMs = nowMs + 100 * 365 * 24 * 60 * 60 * 1000; // previous day so never expires (100 years from now)
+                    } else if (gameDate > midnightTonight) {
+                        expirationMs = new Date(midnightTonight).getTime() + 5 * 60 * 1000; // 5 minutes after midnight
                     } else if (anyStillToPlay) {
                         expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
                     } else {
