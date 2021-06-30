@@ -33,8 +33,8 @@ export class Cache {
         return null;
     }
 
-    public set(key: string, newObject: any, expirationTime: number) {
-        const cacheItem = {expiration: expirationTime, object: newObject}
+    public set(key: string, newObject: any, expirationTime: number, usefulUntil: number) {
+        const cacheItem = {expiration: expirationTime, usefulUntil: usefulUntil, object: newObject}
         this.cacheStorage[key] =  cacheItem;
 
         //fs.writeFileSync("cache.json", JSON.stringify(this.cacheStorage, null, 4));

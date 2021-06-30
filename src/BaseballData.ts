@@ -104,17 +104,25 @@ export class BaseballData {
                     } else {
                         this.logger.info("BaseballData: No games");
                     }
-
+                    
+                    let midnight = new Date().setHours(0,0,0,0);
+                     
                     const nowMs: number = new Date().getTime();
-                    let expirationMs: number = nowMs + 6 * 60 * 60 * 1000; // 6 hours
+                    let expirationMs: number; 
 
-                    if (anyActive) {
+                    if (gameDate < midnight) {
+                        expirationMs = nowMs + 100 * 365 * 24 * 60 * 60 * 1000; // previous day so never expires (100 years from now)
+                    } else if (anyActive) {
                         expirationMs = nowMs + 5 * 60 * 1000; // 5 minutes
                     } else if (anyStillToPlay) {
                         expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
+                    } else {
+                        expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
                     }
 
-                    this.cache.set(key, baseballJson, expirationMs);
+                    let usefulUntil: number = nowMs + 7 * 24 * 60 * 60 * 1000; // useful for 7 days, then purge it.
+
+                    this.cache.set(key, baseballJson, expirationMs, usefulUntil);
                 })
                 .catch((error: any) => {
                     // handle error
