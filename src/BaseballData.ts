@@ -96,6 +96,7 @@ export class BaseballData {
                                     break;
                                 case "Final":
                                 case "Game Over":
+                                case "Postponed":
                                     break;
                                 default:
                                     this.logger.warn(`Found new game status: ${game.status}`)

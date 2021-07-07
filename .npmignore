@@ -1,4 +1,4 @@
-test.js
-test.js.map
-main.js
-main.js.map
+test.*
+main.*
+app.*
+index.*

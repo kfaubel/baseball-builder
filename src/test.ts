@@ -6,10 +6,11 @@ import util = require('util');
 import { Logger } from "./Logger";
 import { BaseballImage } from './BaseballImage';
 import { Cache } from "./Cache";
+import { exit } from 'process';
 
 const teamTable = require('../teams.json');
 
-const logger = new Logger(null, "test");
+const logger = new Logger("BaseballImage test");
 
 fs.mkdirSync(__dirname + '/../teams/', { recursive: true });
 
@@ -17,8 +18,10 @@ const cache = new Cache(logger);
 
 // Create a new express application instance
 async function run() {
-    const baseballImage = new BaseballImage(new Logger(null, "baseball-builder"), cache);
+    const baseballImage = new BaseballImage(logger, cache);
     const teams = Object.keys(teamTable);
+
+    let exitStatus = 0;
 
     for (let team of teams) 
     // const team = "FENWAY";
@@ -26,6 +29,12 @@ async function run() {
         logger.info(`Test: Starting process for team:  ${team}`)
     
         const result = await baseballImage.getImageStream(team);
+
+        if (result === null || result.jpegImg === null) {
+            logger.error(`Failed to write image for ${team}`);
+            exitStatus = 1;
+            continue;
+        }
     
         logger.info(`Test:   Writing from data: ./teams/${team}.jpg`);
         // We now get result.jpegImg
@@ -46,6 +55,8 @@ async function run() {
         //     logger.warn("No result stream");
         // }
     }
+
+    process.exit(exitStatus);
 }
 
 run();
