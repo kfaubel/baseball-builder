@@ -90,6 +90,7 @@ export class BaseballData {
                                     break;
                                 case "Warmup":
                                 case "Pre-game":
+                                case "Pre-Game":
                                 case "Preview":
                                 case "Scheduled":
                                     anyStillToPlay = true;
