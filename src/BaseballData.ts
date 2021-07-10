@@ -93,6 +93,7 @@ export class BaseballData {
                                 case "Pre-Game":
                                 case "Preview":
                                 case "Scheduled":
+                                case "Delayed: Rain":
                                     anyStillToPlay = true;
                                     break;
                                 case "Final":
