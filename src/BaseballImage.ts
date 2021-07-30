@@ -1,23 +1,43 @@
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
+import * as fs from 'fs';
+import jpeg from 'jpeg-js';
+import path from 'path';
+import * as pure from 'pureimage';
+import { Cache  } from './Cache.js';
+import { Logger } from './Logger.js';
+import { BaseballData, GameDayObj, Game } from "./BaseballData";
 
-import stream = require("stream");
-const pure = require("pureimage");
-const jpeg = require("jpeg-js");
+interface Team {
+    redirect: string;
+    color1: string;
+    color2: string;
+    color3: string;
+    name: string;
+}
 
-import { BaseballData } from "./BaseballData";
+interface TeamTable {
+    [key: string]: Team;
+}
 
-const teamTable = require(__dirname + "/../teams.json");
-const fontDir = __dirname + "/../fonts";
+export interface ImageResult {
+    expires: string;
+    imageType: string;
+    imageData: jpeg.BufferRet | null;
+}
+
+//const fontDir = __dirname + "/../fonts";
 
 export class BaseballImage {
-    private baseballData: any;
-    private dayList: any[];
-    private logger: any;
-    private cache: any;
+    private baseballData: BaseballData;
+    private dayList: GameDayObj[];
+    private logger: Logger;
+    private cache: Cache;
+    private dirname: string;
 
-    constructor(logger: any, cache: any) {
+    constructor(logger: Logger, dirname: string, cache: Cache) {
         this.logger = logger;
+        this.dirname = dirname;
         this.cache = cache;
         this.dayList = [];
         this.baseballData = new BaseballData(this.logger, this.cache);
@@ -32,46 +52,63 @@ export class BaseballImage {
     //     expires: expires.toUTCString(),
     //     error: ""
     // }
-    public async getImageStream(teamAbbrev: string) {
-        this.dayList = [];
+    public async getImage(teamAbbrev: string): Promise<ImageResult> {
 
         // The teamTable has some extra entries that point to a different abbreviation to lookup
-        let teamLookup: string = "";
-        const teamInfo = teamTable[teamAbbrev.toUpperCase()];
-        if (teamInfo === undefined) {
-            return {
-                jpegImg: null,
-                stream: null,
-                expires: null,
-                error: `Team ${teamAbbrev} not found`,
-            };
-        }
+        let teamTable: TeamTable;
+        const errorResult: ImageResult = {
+            imageData: null,
+            expires: "",
+            imageType: ""
+        };
 
-        const redirect: string = teamTable[teamAbbrev.toUpperCase()].redirect;
-        if (redirect !== undefined) {
-            teamLookup = redirect;
-        } else {
-            teamLookup = teamAbbrev.toUpperCase();
+        try {
+            const teamTablePath: string = path.join(this.dirname, "..", "teams.json");
+            const sampleBuffer = fs.readFileSync(teamTablePath);
+            teamTable = JSON.parse(sampleBuffer.toString());
+        } catch (e) {
+            this.logger.error(`Could not read Teams Table: ${e.text}`);
+            return errorResult;
         }
-
-        const backgroundColor: string = teamTable[teamAbbrev].color1; // 'rgb(71, 115, 89)'; // 0xff4f7359 - Fenway green
-        const DrawingColor: string = teamTable[teamAbbrev].color2; // 'rgb(200, 200, 200)';
-        const textColor: string = teamTable[teamAbbrev].color3; // 'white';
+        
+        let teamLookup = "";
+        let backgroundColor = "";
+        let DrawingColor = "";
+        let textColor = "";
+        try {
+            
+            const teamInfo = teamTable[teamAbbrev.toUpperCase()];
+            if (teamInfo === undefined) {
+                return errorResult;
+            }
+    
+            const redirect: string = teamTable[teamAbbrev.toUpperCase()].redirect;
+            if (redirect !== undefined) {
+                teamLookup = redirect;
+            } else {
+                teamLookup = teamAbbrev.toUpperCase();
+            }
+    
+            backgroundColor = teamTable[teamAbbrev].color1; // 'rgb(71, 115, 89)'; // 0xff4f7359 - Fenway green
+            DrawingColor = teamTable[teamAbbrev].color2; // 'rgb(200, 200, 200)';
+            textColor = teamTable[teamAbbrev].color3; // 'white';
+        } catch (e) {
+            this.logger.error(`Could not find team ${teamAbbrev}in teams table: ${e.text}`);
+            return errorResult;
+        }
+        
 
         // let day = await baseballData.getDate(new Date(), teamAbbrev); // Test the cache
 
         // Get date 2 days ago through 4 days from now.  7 Days total
-        for (let dayIndex: number = -2; dayIndex <= 4; dayIndex++) {
+        for (let dayIndex = -2; dayIndex <= 4; dayIndex++) {
             // const requestDate = new Date("2019/09/10");
             const requestDate = new Date();
             requestDate.setDate(requestDate.getDate() + dayIndex);
 
             // tslint:disable-next-line:no-console
             // this.logger.info("BaseballImage: [" + teamAbbrev + " (" + teamLookup + ")" + "] Requesting game for date: " + requestDate.toDateString());
-            const day = await this.baseballData.getDate(
-                requestDate,
-                teamLookup
-            );
+            const day: GameDayObj = await this.baseballData.getDate(requestDate, teamLookup);
             this.dayList.push(day);
         }
 
@@ -79,8 +116,8 @@ export class BaseballImage {
         // * Double headers cause us to show different games than 1/day
         // * dayList  - is the array of 7 days we got above
         // * gameList - is the array of games we will display in the 7 slots
-        const gameList: any[] = [];
-        const TODAY: number = 2; // Index in the array of today's game
+        const gameList: Game[] = [];
+        const TODAY = 2; // Index in the array of today's game
 
         // Slot 0 - if Yesterday was a double header, its game 1, else its the last game from the day before yesterday
         if (this.dayList[TODAY - 1].games.length === 2) {
@@ -114,55 +151,43 @@ export class BaseballImage {
             }
         }
 
-        const imageHeight: number = 1080; // 800;
-        const imageWidth: number = 1920; // 1280;
+        const imageHeight = 1080; // 800;
+        const imageWidth = 1920; // 1280;
 
         // const titleFont: string = 'bold 90px sans-serif';   // Title
         // const gamesFont: string = 'bold 90px sans-serif';    // row of game data
-        const titleFont: string = "90px 'OpenSans-Bold'"; // Title
-        const gamesFont: string = "90px 'OpenSans-Bold'"; // row of game data
+        const titleFont = "90px 'OpenSans-Bold'"; // Title
+        const gamesFont = "90px 'OpenSans-Bold'"; // row of game data
 
-        const largeFont: string = "48px 'OpenSans-Bold'"; // Title
-        const mediumFont: string = "36px 'OpenSans-Bold'"; // axis labels
-        const smallFont: string = "24px 'OpenSans-Bold'"; // Legend at the top
-
-        const fntBold = pure.registerFont(
-            fontDir + "/OpenSans-Bold.ttf",
-            "OpenSans-Bold"
-        );
-        const fntRegular = pure.registerFont(
-            fontDir + "/OpenSans-Regular.ttf",
-            "OpenSans-Regular"
-        );
-        const fntRegular2 = pure.registerFont(
-            fontDir + "/alata-regular.ttf",
-            "alata-regular"
-        );
+        const fntBold = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Bold.ttf"),'OpenSans-Bold');
+        const fntRegular = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Regular.ttf"),'OpenSans-Regular');
+        const fntRegular2 = pure.registerFont(path.join(this.dirname, "..", "fonts", "alata-regular.ttf"),'alata-regular');
 
         fntBold.loadSync();
         fntRegular.loadSync();
         fntRegular2.loadSync();
 
-        const OutlineStrokeWidth: number = 30;
-        const boarderStrokeWidth: number = 30;
-        const boxStrokeWidth: number = 10;
+        const OutlineStrokeWidth = 30;
+        const boarderStrokeWidth = 30;
+        const boxStrokeWidth = 10;
 
-        const TitleOffset: number = 120;
+        const TitleOffset = 120;
 
-        const boxHeight1: number = 110;
-        const boxHeight2: number = 200; // Double header
-        const boxHorMargin: number = 30;
-        const boxTopY: number = 440;
+        const firstGameYOffset = 265;
+        const gameYOffset = 130;
 
-        const firstGameYOffset: number = 265;
-        const gameYOffset: number = 130;
+        const boxHeight1 = 110;
+        const boxHeight2 = boxHeight1 + gameYOffset; // Double header
+        const boxHorMargin = 30;
+        const boxTopY = 440;
 
-        const dayXOffset: number = 40;
-        const dateXOffset: number = 320;
-        const teamXOffset: number = 700;
-        const homeAwayXOffset: number = 955;
-        const opponentXOffset: number = 1050;
-        const gameTextXOffset: number = 1300;
+        
+        const dayXOffset = 40;
+        const dateXOffset = 320;
+        const teamXOffset = 700;
+        const homeAwayXOffset = 955;
+        const opponentXOffset = 1050;
+        const gameTextXOffset = 1300;
 
         //const canvas = createCanvas(imageWidth, imageHeight);
         //const ctx = canvas.getContext('2d');
@@ -226,10 +251,10 @@ export class BaseballImage {
         // How long is this image good for
         let goodForMins = 60;
 
-        for (let gameIndex: number = 0; gameIndex <= 6; gameIndex++) {
+        for (let gameIndex = 0; gameIndex <= 6; gameIndex++) {
             const yOffset: number = firstGameYOffset + gameIndex * gameYOffset;
 
-            const game: any = gameList[gameIndex];
+            const game: Game = gameList[gameIndex];
 
             const gameDay = game.day;
             const gameDate = game.date;
@@ -238,38 +263,38 @@ export class BaseballImage {
                 ctx.fillStyle = textColor;
                 ctx.font = gamesFont;
 
-                let opponent: string = "";
-                let usRuns: number = 0;
-                let themRuns: number = 0;
-                let homeAway: string = "";
-                let topStr: string = "";
-                let gameTime: string = "";
+                let opponent = "";
+                let usRuns = "";
+                let themRuns = "";
+                let homeAway = "";
+                let topStr = "";
+                let gameTime = "";
 
                 if (game.home_name_abbrev === teamLookup) {
-                    opponent = game.away_name_abbrev;
-                    gameTime = game.home_time;
+                    opponent = game.away_name_abbrev as string;
+                    gameTime = game.home_time as string;
                     homeAway = "v";
                 } else {
-                    opponent = game.home_name_abbrev;
-                    gameTime = game.away_time;
+                    opponent = game.home_name_abbrev as string;
+                    gameTime = game.away_time as string;
                     homeAway = "@";
                 }
 
-                let gameText: string = "";
+                let gameText = "";
                 switch (game.status) {
                     case "In Progress":
                         if (game.home_name_abbrev === teamLookup) {
-                            usRuns = game.home_team_runs;
-                            themRuns = game.away_team_runs;
+                            usRuns = game.home_team_runs as string;
+                            themRuns = game.away_team_runs as string;
                         } else {
-                            usRuns = game.away_team_runs;
-                            themRuns = game.home_team_runs;
+                            usRuns = game.away_team_runs as string;
+                            themRuns = game.home_team_runs as string;
                         }
 
-                        if (game.top_inning === "Y") {
-                            topStr = "\u25B2"; // up arrow
+                        if (game.top_inning as string === "Y") {
+                            topStr = '^'; //"\u25B2"; // up arrow
                         } else {
-                            topStr = "\u25BC"; // down arrow
+                            topStr = 'v'; //"\u25BC"; // down arrow
                         }
 
                         gameText =
@@ -294,12 +319,13 @@ export class BaseballImage {
                     case "Final":
                     case "Final: Tied":
                     case "Game Over":
+                    case "Completed Early: Rain":
                         if (game.home_name_abbrev === teamLookup) {
-                            usRuns = game.home_team_runs;
-                            themRuns = game.away_team_runs;
+                            usRuns = game.home_team_runs as string;
+                            themRuns = game.away_team_runs as string;
                         } else {
-                            usRuns = game.away_team_runs;
-                            themRuns = game.home_team_runs;
+                            usRuns = game.away_team_runs as string;
+                            themRuns = game.home_team_runs as string;
                         }
 
                         gameText = usRuns + "-" + themRuns + " F";
@@ -310,6 +336,7 @@ export class BaseballImage {
                         goodForMins = 240;
                         break;
                     case "Suspended":
+                    case "Suspended: Rain":
                         gameText = "SPND";
                         goodForMins = 240;
                         break;
@@ -318,7 +345,7 @@ export class BaseballImage {
                         break;
                 }
 
-                // The 'v' or '@' need to be centered
+                // The 'v' or '@' needs to be centered
                 const homeAwayX =
                     homeAwayXOffset - ctx.measureText(homeAway).width / 2;
 
@@ -339,20 +366,12 @@ export class BaseballImage {
         const expires = new Date();
         expires.setMinutes(expires.getMinutes() + goodForMins);
 
-        const jpegImg = await jpeg.encode(img, 50);
-
-        const jpegStream = new stream.Readable({
-            read() {
-                this.push(jpegImg.data);
-                this.push(null);
-            },
-        });
+        const jpegImg = jpeg.encode(img, 50);
 
         return {
-            jpegImg: jpegImg,
-            stream: jpegStream,
-            expires: expires.toUTCString(),
-            error: "",
+            imageData: jpegImg,
+            imageType: "jpg",
+            expires: expires.toUTCString()
         };
     }
 }

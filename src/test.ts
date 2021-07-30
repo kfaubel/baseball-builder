@@ -1,36 +1,62 @@
 // lib/app.ts
-import fs = require('fs');
-import stream = require('stream');
-import util = require('util');
+import * as fs from 'fs';
+import path from 'path';
 
 import { Logger } from "./Logger";
 import { BaseballImage } from './BaseballImage';
 import { Cache } from "./Cache";
-import { exit } from 'process';
 
-const teamTable = require('../teams.json');
+interface Team {
+    redirect: string;
+    color1: string;
+    color2: string;
+    color3: string;
+    name: string;
+}
 
-const logger = new Logger("BaseballImage test");
+interface TeamTable {
+    [key: string]: Team;
+}
 
-fs.mkdirSync(__dirname + '/../teams/', { recursive: true });
-
-const cache = new Cache(logger);
-
-// Create a new express application instance
 async function run() {
-    const baseballImage = new BaseballImage(logger, cache);
+    const logger = new Logger("baseball-builder");
+
+    fs.mkdirSync(__dirname + '/../teams/', { recursive: true });
+
+    const cache = new Cache(logger);
+
+    const baseballImage = new BaseballImage(logger, __dirname, cache);
+
+    let teamTable: TeamTable;
+
+    try {
+        const teamTablePath: string = path.join(__dirname, "..", "teams.json");
+        const sampleBuffer = fs.readFileSync(teamTablePath);
+        teamTable = JSON.parse(sampleBuffer.toString());
+    } catch (e) {
+        logger.error(`Could not read Teams Table: ${e.text}`);
+        return 1;
+    }
+
+    logger.log(`type of teams is: ${typeof(teamTable)}`);
+    
+    if (!Array.isArray(teamTable)) {
+        logger.error(`Team table was not the list expected.`);
+        logger.log(`${JSON.stringify(teamTable, null, 4)}`);
+        
+    }
     const teams = Object.keys(teamTable);
 
     let exitStatus = 0;
 
-    for (let team of teams) 
+    for (const team of teams) 
     // const team = "FENWAY";
     {
         logger.info(`Test: Starting process for team:  ${team}`)
     
-        const result = await baseballImage.getImageStream(team);
+        const result = await baseballImage.getImage(team);
 
-        if (result === null || result.jpegImg === null) {
+        if (result === null || result.imageData === null) {
             logger.error(`Failed to write image for ${team}`);
             exitStatus = 1;
             continue;
@@ -38,22 +64,7 @@ async function run() {
     
         logger.info(`Test:   Writing from data: ./teams/${team}.jpg`);
         // We now get result.jpegImg
-        fs.writeFileSync(__dirname +'/../teams/' + team + '.jpg', result.jpegImg.data);
-
-        // logger.info(`Writing from stream: ./teams/${team}2.jpg`);
-
-        // if (result.stream !== null) {
-        //     const out = fs.createWriteStream(__dirname +'/../teams/' + team + '2.jpg');
-        //     const finished = util.promisify(stream.finished);
-
-        //     result.stream.pipe(out);
-            
-        //     out.on('finish', () =>  logger.info('The jpg from a stream file was created.'));
-
-        //     await finished(out); 
-        // } else {
-        //     logger.warn("No result stream");
-        // }
+        fs.writeFileSync(__dirname +'/../teams/' + team + '.jpg', result.imageData.data);
     }
 
     process.exit(exitStatus);

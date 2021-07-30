@@ -1,21 +1,33 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import fs = require('fs');
+import { Logger } from './Logger';
+
+interface CacheItem {
+    expiration: number;
+    usefulUntil: number;
+    object: unknown;
+}
+
+export interface CacheStorage {
+    [key: string]: CacheItem;
+}
 
 export class Cache {
-    private cacheStorage: any; 
+    private cacheStorage: CacheStorage; 
 
-    private logger: any;
+    private logger: Logger;
 
-    constructor(logger: any) {
+    constructor(logger: Logger) {
         this.logger = logger;
         this.cacheStorage = {};
     }
 
-    public get(key: any) {
+    public get(key: string): unknown {
         if (this.cacheStorage[key] !== undefined) {
-            const cacheItem: any = this.cacheStorage[key];
+            const cacheItem: CacheItem = this.cacheStorage[key];
 
-            const expiration = cacheItem.expiration;
-            const object     = cacheItem.object;
+            const expiration: number = cacheItem.expiration;
+            const object: unknown    = cacheItem.object;
 
             const now = new Date();
             if (expiration > now.getTime()) {
@@ -33,7 +45,7 @@ export class Cache {
         return null;
     }
 
-    public set(key: string, newObject: any, expirationTime: number, usefulUntil: number) {
+    public set(key: string, newObject: unknown, expirationTime: number, usefulUntil: number): void {
         const cacheItem = {expiration: expirationTime, usefulUntil: usefulUntil, object: newObject}
         this.cacheStorage[key] =  cacheItem;
 

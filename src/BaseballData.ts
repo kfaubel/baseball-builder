@@ -1,11 +1,11 @@
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
 
-const convert = require("xml-js");
-const axios = require("axios");
-const fs = require("fs");
-
-//import { Cache } from "./Cache";
+import * as fs from 'fs';
+//import path from 'path';
+import axios, { AxiosResponse } from 'axios';
+import { Logger } from './Logger.js';
+import { Cache } from './Cache.js';
 
 // From a post on reddit.   This may be what's next
 // You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
@@ -22,46 +22,52 @@ const fs = require("fs");
 // New data source : https://www.baseball.gov/documentation/services-web-api
 // Not all data is present
 
-// Key elements in a game object
-// "away_file_code": "la",
-// "away_loss": "33",
-// "away_name_abbrev": "LAD",
-// "away_team_runs": "",
-// "away_time": "4:05",
-// "away_win": "63",
-// "game_type": "R",
-// "home_loss": "46",
-// "home_name_abbrev": "PHI",
-// "home_team_runs": "",
-// "home_win": "48",
-// "inning": "",
-// "series": "Regular Season",
-// "status": "Scheduled",
-// "top_inning": "N"
+export interface Game {
+    status: string;           // "Scheduled"
+    series?: string;          // "Regular Season"
+    game_type?: string        // "R"
+    day: string;
+    date: string;
+    home_time?: string;
+    away_time?: string;
+    home_team_runs?: string;
+    away_team_runs?: string;
+    home_name_abbrev?: string; // BOS
+    away_name_abbrev?: string;
+    event_time?: string;
+    home_score?: string;
+    away_score?: string;
+    inning?: string;
+    top_inning?: string;        // "N"
+}
+
+export interface GameDayObj {
+    year: string;
+    month: string;
+    day: string;
+    games: Array<Game>;
+}
 
 export class BaseballData {
-    private logger;
-    private cache;
+    private logger: Logger;
+    private cache: Cache;
 
-    constructor(logger: any, cache: any) {
+    constructor(logger: Logger, cache: Cache) {
         this.logger = logger;
         this.cache = cache;
     }
 
-    public async getDate(gameDate, theTeam: string) {
-        const gameDayObj: any = {
-            year: gameDate.getFullYear(), // 2019
-
-            month: ("00" + (gameDate.getMonth() + 1)).slice(-2), // 10       getMonth() returns 0-11
-            day: ("00" + gameDate.getDate()).slice(-2), // 04       *clever* way to prepend leading 0s
-            games: [] as any[], // Not very satisfying but does prevent an inferred "never" error below
+    public async getDate(gameDate: Date, theTeam: string): Promise<GameDayObj> {
+        const gameDayObj: GameDayObj = {
+            year: `${gameDate.getFullYear()}`,                    // 2019
+            month: ("00" + (gameDate.getMonth() + 1)).slice(-2),  // 10       getMonth() returns 0-11
+            day: ("00" + gameDate.getDate()).slice(-2),           // 04       *clever* way to prepend leading 0s
+            games: [], 
         };
 
-        const key = gameDayObj.year + "_" + gameDayObj.month + "_" + gameDayObj.day;
+        const key: string = gameDayObj.year + "_" + gameDayObj.month + "_" + gameDayObj.day;
 
-        let baseballJson: any = null;
-
-        baseballJson = this.cache.get(key);
+        let baseballJson: any = this.cache.get(key);
 
         if (baseballJson !== null) {
             //this.logger.log(`BaseballData: Cache hit  for ${theTeam} on ${key}`);
@@ -71,17 +77,17 @@ export class BaseballData {
             this.logger.info(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
             // this.logger.info("BaseballData: URL: " + url);
 
-            await axios
-                .get(url)
-                .then((response: any) => {
-                    baseballJson = response.data;
+            try {
+                const response: AxiosResponse = await axios.get(url);
+                baseballJson = response.data;
 
-                    //console.log("MLB response data: " + JSON.stringify(response.data, null, 4));
+                    console.log("MLB response data: " + JSON.stringify(response.data, null, 4));
 
-                    let anyActive: boolean = false;
-                    let anyStillToPlay: boolean = false;
-                    let noGames: boolean = false;
+                    let anyActive = false;
+                    let anyStillToPlay = false;
+                    let noGames = false;
 
+                    // game is actualy an array of objects
                     if (Array.isArray(baseballJson.data.games.game)) {
                         for (const game of baseballJson.data.games.game) {
                             switch (game.status) {
@@ -111,8 +117,10 @@ export class BaseballData {
                         noGames = true;
                     }
                     
-                    let midnightThisMorning = new Date().setHours(0,0,0,0);
-                    let midnightTonight = new Date().setHours(23,59,59,0);
+                    const midnightThisMorning: Date = new Date();
+                    midnightThisMorning.setHours(0,0,0,0);
+                    const midnightTonight: Date = new Date();
+                    midnightTonight.setHours(23,59,59,0);
                      
                     const nowMs: number = new Date().getTime();
                     let expirationMs: number; 
@@ -135,15 +143,14 @@ export class BaseballData {
                         expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
                     }
 
-                    let usefulUntil: number = nowMs + 7 * 24 * 60 * 60 * 1000; // useful for 7 days, then purge it.
+                    const usefulUntil: number = nowMs + 7 * 24 * 60 * 60 * 1000; // useful for 7 days, then purge it.
 
                     this.cache.set(key, baseballJson, expirationMs, usefulUntil);
-                })
-                .catch((error: any) => {
-                    // handle error
-                    // tslint:disable-next-line:no-console
-                    this.logger.error("BaseballData: Error: " + error + " " + error.stack);
-                });
+            } catch (e) {
+                this.logger.error("Read article data: " + e);
+            }
+            
+           
         }
 
         // We have a valid baseballJson
@@ -152,8 +159,8 @@ export class BaseballData {
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
         try {
-            if (baseballJson !== null && Array.isArray(baseballJson.data.games.game)) {
-                let game: any = null;
+            if (baseballJson !== null && Array.isArray(baseballJson.data.games.game as Game)) {
+                let game: Game;
                 for (game of baseballJson.data.games.game) {
                     if (game.away_name_abbrev === theTeam || game.home_name_abbrev === theTeam) {
                         //this.logger.log("BaseballData: Game Day: " + theTeam + " " + JSON.stringify(game.id, null, 4));
@@ -181,12 +188,12 @@ export class BaseballData {
         } catch (e) {
             this.logger.error("BaseballData: Error processing, baseballJson from site.  Did the result format change?");
         }
-
+        
         // For whatever reason
         if (gameDayObj.games.length === 0) {
-            const dayStr = weekdays[gameDate.getDay()];
-            const dateStr = months[gameDate.getMonth()] + " " + gameDate.getDate();
-            const game = { status: "OFF", day: dayStr, date: dateStr };
+            const dayStr: string = weekdays[gameDate.getDay()];
+            const dateStr: string = months[gameDate.getMonth()] + " " + gameDate.getDate();
+            const game: Game  = { status: "OFF", day: dayStr, date: dateStr };
             gameDayObj.games.push(game);
         }
 
