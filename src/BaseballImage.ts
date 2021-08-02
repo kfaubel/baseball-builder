@@ -1,11 +1,11 @@
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
-import * as fs from 'fs';
-import jpeg from 'jpeg-js';
-import path from 'path';
-import * as pure from 'pureimage';
-import { Cache  } from './Cache.js';
-import { Logger } from './Logger.js';
+import * as fs from "fs";
+import jpeg from "jpeg-js";
+import path from "path";
+import * as pure from "pureimage";
+import { Cache  } from "./Cache.js";
+import { Logger } from "./Logger.js";
 import { BaseballData, GameDayObj, Game } from "./BaseballData";
 
 interface Team {
@@ -25,8 +25,6 @@ export interface ImageResult {
     imageType: string;
     imageData: jpeg.BufferRet | null;
 }
-
-//const fontDir = __dirname + "/../fonts";
 
 export class BaseballImage {
     private baseballData: BaseballData;
@@ -52,15 +50,10 @@ export class BaseballImage {
     //     expires: expires.toUTCString(),
     //     error: ""
     // }
-    public async getImage(teamAbbrev: string): Promise<ImageResult> {
+    public async getImage(teamAbbrev: string): Promise<ImageResult | null> {
 
         // The teamTable has some extra entries that point to a different abbreviation to lookup
         let teamTable: TeamTable;
-        const errorResult: ImageResult = {
-            imageData: null,
-            expires: "",
-            imageType: ""
-        };
 
         try {
             const teamTablePath: string = path.join(this.dirname, "..", "teams.json");
@@ -68,7 +61,7 @@ export class BaseballImage {
             teamTable = JSON.parse(sampleBuffer.toString());
         } catch (e) {
             this.logger.error(`Could not read Teams Table: ${e.text}`);
-            return errorResult;
+            return null;
         }
         
         let teamLookup = "";
@@ -79,7 +72,7 @@ export class BaseballImage {
             
             const teamInfo = teamTable[teamAbbrev.toUpperCase()];
             if (teamInfo === undefined) {
-                return errorResult;
+                return null;
             }
     
             const redirect: string = teamTable[teamAbbrev.toUpperCase()].redirect;
@@ -94,10 +87,9 @@ export class BaseballImage {
             textColor = teamTable[teamAbbrev].color3; // 'white';
         } catch (e) {
             this.logger.error(`Could not find team ${teamAbbrev}in teams table: ${e.text}`);
-            return errorResult;
+            return null;
         }
         
-
         // let day = await baseballData.getDate(new Date(), teamAbbrev); // Test the cache
 
         // Get date 2 days ago through 4 days from now.  7 Days total
@@ -159,9 +151,9 @@ export class BaseballImage {
         const titleFont = "90px 'OpenSans-Bold'"; // Title
         const gamesFont = "90px 'OpenSans-Bold'"; // row of game data
 
-        const fntBold = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Bold.ttf"),'OpenSans-Bold');
-        const fntRegular = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Regular.ttf"),'OpenSans-Regular');
-        const fntRegular2 = pure.registerFont(path.join(this.dirname, "..", "fonts", "alata-regular.ttf"),'alata-regular');
+        const fntBold     = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Bold.ttf"),"OpenSans-Bold");
+        const fntRegular  = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Regular.ttf"),"OpenSans-Regular");
+        const fntRegular2 = pure.registerFont(path.join(this.dirname, "..", "fonts", "alata-regular.ttf"),"alata-regular");
 
         fntBold.loadSync();
         fntRegular.loadSync();
@@ -282,67 +274,67 @@ export class BaseballImage {
 
                 let gameText = "";
                 switch (game.status) {
-                    case "In Progress":
-                        if (game.home_name_abbrev === teamLookup) {
-                            usRuns = game.home_team_runs as string;
-                            themRuns = game.away_team_runs as string;
-                        } else {
-                            usRuns = game.away_team_runs as string;
-                            themRuns = game.home_team_runs as string;
-                        }
+                case "In Progress":
+                    if (game.home_name_abbrev === teamLookup) {
+                        usRuns = game.home_team_runs as string;
+                        themRuns = game.away_team_runs as string;
+                    } else {
+                        usRuns = game.away_team_runs as string;
+                        themRuns = game.home_team_runs as string;
+                    }
 
-                        if (game.top_inning as string === "Y") {
-                            topStr = '^'; //"\u25B2"; // up arrow
-                        } else {
-                            topStr = 'v'; //"\u25BC"; // down arrow
-                        }
+                    if (game.top_inning as string === "Y") {
+                        topStr = "^"; //"\u25B2"; // up arrow
+                    } else {
+                        topStr = "v"; //"\u25BC"; // down arrow
+                    }
 
-                        gameText =
+                    gameText =
                             usRuns +
                             "-" +
                             themRuns +
                             "    " +
                             topStr +
                             game.inning;
-                        goodForMins = 10;
-                        break;
-                    case "Warmup":
-                        gameText = "Warm up";
-                        goodForMins = 30;
-                        break;
-                    case "Pre-game":
-                    case "Preview":
-                    case "Scheduled":
-                        gameText = gameTime;
-                        goodForMins = 60;
-                        break;
-                    case "Final":
-                    case "Final: Tied":
-                    case "Game Over":
-                    case "Completed Early: Rain":
-                        if (game.home_name_abbrev === teamLookup) {
-                            usRuns = game.home_team_runs as string;
-                            themRuns = game.away_team_runs as string;
-                        } else {
-                            usRuns = game.away_team_runs as string;
-                            themRuns = game.home_team_runs as string;
-                        }
+                    goodForMins = 10;
+                    break;
+                case "Warmup":
+                    gameText = "Warm up";
+                    goodForMins = 30;
+                    break;
+                case "Pre-game":
+                case "Preview":
+                case "Scheduled":
+                    gameText = gameTime;
+                    goodForMins = 60;
+                    break;
+                case "Final":
+                case "Final: Tied":
+                case "Game Over":
+                case "Completed Early: Rain":
+                    if (game.home_name_abbrev === teamLookup) {
+                        usRuns = game.home_team_runs as string;
+                        themRuns = game.away_team_runs as string;
+                    } else {
+                        usRuns = game.away_team_runs as string;
+                        themRuns = game.home_team_runs as string;
+                    }
 
-                        gameText = usRuns + "-" + themRuns + " F";
-                        goodForMins = 240;
-                        break;
-                    case "Postponed":
-                        gameText = "PPD";
-                        goodForMins = 240;
-                        break;
-                    case "Suspended":
-                    case "Suspended: Rain":
-                        gameText = "SPND";
-                        goodForMins = 240;
-                        break;
-                    default:
-                        gameText = game.status;
-                        break;
+                    gameText = usRuns + "-" + themRuns + " F";
+                    goodForMins = 240;
+                    break;
+                case "Postponed":
+                    gameText = "PPD";
+                    goodForMins = 240;
+                    break;
+                case "Suspended":
+                case "Suspended: Rain":
+                    gameText = "SPND";
+                    goodForMins = 240;
+                    break;
+                default:
+                    gameText = game.status;
+                    break;
                 }
 
                 // The 'v' or '@' needs to be centered

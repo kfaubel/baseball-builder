@@ -1,11 +1,9 @@
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
 
-import * as fs from 'fs';
-//import path from 'path';
-import axios, { AxiosResponse } from 'axios';
-import { Logger } from './Logger.js';
-import { Cache } from './Cache.js';
+import axios, { AxiosResponse } from "axios";
+import { Logger } from "./Logger.js";
+import { Cache } from "./Cache.js";
 
 // From a post on reddit.   This may be what's next
 // You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
@@ -67,6 +65,7 @@ export class BaseballData {
 
         const key: string = gameDayObj.year + "_" + gameDayObj.month + "_" + gameDayObj.day;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let baseballJson: any = this.cache.get(key);
 
         if (baseballJson !== null) {
@@ -78,76 +77,74 @@ export class BaseballData {
             // this.logger.info("BaseballData: URL: " + url);
 
             try {
-                const response: AxiosResponse = await axios.get(url);
+                const response: AxiosResponse = await axios.get(url, {headers: {"Content-Encoding": "gzip"}});
                 baseballJson = response.data;
 
-                    console.log("MLB response data: " + JSON.stringify(response.data, null, 4));
+                //this.logger.verbose("MLB response data: " + JSON.stringify(response.data, null, 4));
 
-                    let anyActive = false;
-                    let anyStillToPlay = false;
-                    let noGames = false;
+                let anyActive = false;
+                let anyStillToPlay = false;
+                let noGames = false;
 
-                    // game is actualy an array of objects
-                    if (Array.isArray(baseballJson.data.games.game)) {
-                        for (const game of baseballJson.data.games.game) {
-                            switch (game.status) {
-                                case "In Progress":
-                                    anyActive = true;
-                                    break;
-                                case "Warmup":
-                                case "Pre-game":
-                                case "Pre-Game":
-                                case "Preview":
-                                case "Scheduled":
-                                case "Delayed: Rain":
-                                    anyStillToPlay = true;
-                                    break;
-                                case "Final":
-                                case "Game Over":
-                                case "Postponed":
-                                    break;
-                                default:
-                                    this.logger.warn(`Found new game status: ${game.status}`)
-                                    anyStillToPlay = true;
-                                    break;
-                            }
+                // game is actualy an array of objects
+                if (Array.isArray(baseballJson.data.games.game)) {
+                    for (const game of baseballJson.data.games.game) {
+                        switch (game.status) {
+                        case "In Progress":
+                            anyActive = true;
+                            break;
+                        case "Warmup":
+                        case "Pre-game":
+                        case "Pre-Game":
+                        case "Preview":
+                        case "Scheduled":
+                        case "Delayed: Rain":
+                            anyStillToPlay = true;
+                            break;
+                        case "Final":
+                        case "Game Over":
+                        case "Postponed":
+                            break;
+                        default:
+                            this.logger.warn(`Found new game status: ${game.status}`);
+                            anyStillToPlay = true;
+                            break;
                         }
-                    } else {
-                        this.logger.info("BaseballData: No games");
-                        noGames = true;
                     }
+                } else {
+                    this.logger.info("BaseballData: No games");
+                    noGames = true;
+                }
                     
-                    const midnightThisMorning: Date = new Date();
-                    midnightThisMorning.setHours(0,0,0,0);
-                    const midnightTonight: Date = new Date();
-                    midnightTonight.setHours(23,59,59,0);
+                const midnightThisMorning: Date = new Date();
+                midnightThisMorning.setHours(0,0,0,0);
+                const midnightTonight: Date = new Date();
+                midnightTonight.setHours(23,59,59,0);
                      
-                    const nowMs: number = new Date().getTime();
-                    let expirationMs: number; 
+                const nowMs: number = new Date().getTime();
+                let expirationMs: number; 
 
-                    // If any games for this day are still active, keep checking
-                    // If the games were yesterday (and finished), they never expire
-                    // if the games are tomorrow, check early tomorrow
-                    // If the games are still to play (Warmup, ...) check in 30 minutes
-                    // Everything else we will check in 6 hours.
+                // If any games for this day are still active, keep checking
+                // If the games were yesterday (and finished), they never expire
+                // if the games are tomorrow, check early tomorrow
+                // If the games are still to play (Warmup, ...) check in 30 minutes
+                // Everything else we will check in 6 hours.
 
-                    if (anyActive) {
-                        expirationMs = nowMs + 5 * 60 * 1000; // 5 minutes
-                    } else if (gameDate < midnightThisMorning  || noGames) {
-                        expirationMs = nowMs + 100 * 365 * 24 * 60 * 60 * 1000; // previous day so never expires (100 years from now)
-                    } else if (gameDate > midnightTonight) {
-                        expirationMs = new Date(midnightTonight).getTime() + 5 * 60 * 1000; // 5 minutes after midnight
-                    } else if (anyStillToPlay) {
-                        expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
-                    } else {
-                        expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
-                    }
+                if (anyActive) {
+                    expirationMs = nowMs + 5 * 60 * 1000; // 5 minutes
+                } else if (gameDate < midnightThisMorning  || noGames) {
+                    expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // previous day so it may be useful for up to 7 days
+                } else if (gameDate > midnightTonight) {
+                    expirationMs = new Date(midnightTonight).getTime() + 5 * 60 * 1000; // 5 minutes after midnight
+                } else if (anyStillToPlay) {
+                    expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
+                } else {
+                    expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
+                }
 
-                    const usefulUntil: number = nowMs + 7 * 24 * 60 * 60 * 1000; // useful for 7 days, then purge it.
-
-                    this.cache.set(key, baseballJson, expirationMs, usefulUntil);
+                this.cache.set(key, baseballJson, expirationMs);
             } catch (e) {
-                this.logger.error("Read article data: " + e);
+                this.logger.error("Read baseball sched data: " + e);
             }
             
            
@@ -196,9 +193,6 @@ export class BaseballData {
             const game: Game  = { status: "OFF", day: dayStr, date: dateStr };
             gameDayObj.games.push(game);
         }
-
-        // tslint:disable-next-line:no-console
-        // console.log("Game Day: " + JSON.stringify(gameDayObj, null, 4));
 
         return gameDayObj;
     }

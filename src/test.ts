@@ -1,9 +1,7 @@
-// lib/app.ts
-import * as fs from 'fs';
-import path from 'path';
-
+import * as fs from "fs";
+import path, { dirname } from "path";
 import { Logger } from "./Logger";
-import { BaseballImage } from './BaseballImage';
+import { BaseballImage, ImageResult } from "./BaseballImage";
 import { Cache } from "./Cache";
 
 interface Team {
@@ -19,11 +17,11 @@ interface TeamTable {
 }
 
 async function run() {
-    const logger = new Logger("baseball-builder");
+    const logger = new Logger("baseball-builder", "verbose");
 
-    fs.mkdirSync(__dirname + '/../teams/', { recursive: true });
+    fs.mkdirSync(__dirname + "/../teams/", { recursive: true });
 
-    const cache = new Cache(logger);
+    const cache: Cache = new Cache(logger, "baseball-sched-cache.json");
 
     const baseballImage = new BaseballImage(logger, __dirname, cache);
 
@@ -37,34 +35,25 @@ async function run() {
         logger.error(`Could not read Teams Table: ${e.text}`);
         return 1;
     }
-
-    logger.log(`type of teams is: ${typeof(teamTable)}`);
     
-    if (!Array.isArray(teamTable)) {
-        logger.error(`Team table was not the list expected.`);
-        logger.log(`${JSON.stringify(teamTable, null, 4)}`);
-        
-    }
     const teams = Object.keys(teamTable);
 
     let exitStatus = 0;
 
-    for (const team of teams) 
-    // const team = "FENWAY";
+    //for (const team of teams) 
+    const team = "FENWAY";
     {
-        logger.info(`Test: Starting process for team:  ${team}`)
+        logger.info(`Test: Starting process for team:  ${team}`);
     
-        const result = await baseballImage.getImage(team);
+        const result: ImageResult | null = await baseballImage.getImage(team);
 
-        if (result === null || result.imageData === null) {
+        if (result !== null && result.imageData !== null) {
+            logger.info(`Test:   Writing from data: ./teams/${team}.jpg`);
+            fs.writeFileSync(__dirname +"/../teams/" + team + ".jpg", result.imageData.data);
+        } else {
             logger.error(`Failed to write image for ${team}`);
             exitStatus = 1;
-            continue;
         }
-    
-        logger.info(`Test:   Writing from data: ./teams/${team}.jpg`);
-        // We now get result.jpegImg
-        fs.writeFileSync(__dirname +'/../teams/' + team + '.jpg', result.imageData.data);
     }
 
     process.exit(exitStatus);

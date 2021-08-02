@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import fs = require('fs');
-import { Logger } from './Logger';
+import fs = require("fs");
+import path from "path";
+import { Logger } from "./Logger";
 
 interface CacheItem {
     expiration: number;
-    usefulUntil: number;
-    object: unknown;
+    comment: string;
+    item: unknown;
 }
 
 export interface CacheStorage {
@@ -14,48 +15,73 @@ export interface CacheStorage {
 
 export class Cache {
     private cacheStorage: CacheStorage; 
+    private cacheName: string;
+    private cachePath: string;
 
     private logger: Logger;
 
-    constructor(logger: Logger) {
+    constructor(logger: Logger, cacheName: string) {
         this.logger = logger;
+        this.cacheName = cacheName;
+        this.cachePath = path.resolve(__dirname, "..", this.cacheName);
         this.cacheStorage = {};
+
+        try {
+            const cacheData: Buffer | null | undefined = fs.readFileSync(this.cachePath);
+            if (cacheData !== undefined && cacheData !== null) {
+                this.cacheStorage = JSON.parse(cacheData.toString());
+
+                for (const [key, value] of Object.entries(this.cacheStorage)) {
+                    const cacheItem = this.cacheStorage[key];
+        
+                    if (cacheItem.expiration < new Date().getTime()) {
+                        this.logger.info(`Cache load: ${key} has expired, deleting`);
+                        delete this.cacheStorage[key];
+                    } else {
+                        this.logger.verbose(`Cache load: ${key} still good.`);
+                    }
+                }
+            } else {
+                this.logger.verbose(`Cache: no previous cache, creating new: ${this.cacheName}`);
+            }
+        } catch (e) {
+            this.logger.verbose(`Cache: no previous cache, creating new: ${this.cacheName}`);
+        }
+
+        this.logger.verbose(`Cache: constructor: previous cache found ${this.cachePath}`); // ${JSON.stringify(this.cacheStorage, null, 4)}`);
     }
 
     public get(key: string): unknown {
         if (this.cacheStorage[key] !== undefined) {
-            const cacheItem: CacheItem = this.cacheStorage[key];
+            const cacheItem: CacheItem = this.cacheStorage[key as keyof CacheStorage];
 
             const expiration: number = cacheItem.expiration;
-            const object: unknown    = cacheItem.object;
+            const item: unknown    = cacheItem.item;
 
             const now = new Date();
             if (expiration > now.getTime()) {
                 // object is current
-                //this.logger.verbose("Cache: Key: " + key + " - cache hit");
-                return object;
+                this.logger.verbose("Cache: Key: " + key + " - cache hit");
+                return item;
             } else {
                 // object expired
-                // this.logger.verbose("Cache: Key: " + key + " - cache expired");
+                this.logger.verbose("Cache: Key: " + key + " - cache expired");
             }
         } else {
-            // this.logger.verbose("Cache: Key: " + key + " - cache miss");
+            this.logger.verbose("Cache: Key: " + key + " - cache miss");
         }
 
         return null;
     }
 
-    public set(key: string, newObject: unknown, expirationTime: number, usefulUntil: number): void {
-        const cacheItem = {expiration: expirationTime, usefulUntil: usefulUntil, object: newObject}
-        this.cacheStorage[key] =  cacheItem;
+    public set(key: string, newItem: unknown, expirationTime: number): void {
+        const comment: string = new Date(expirationTime).toString();
+        this.logger.verbose(`Cache set: Key: ${key}, exp: ${comment}`);
 
-        //fs.writeFileSync("cache.json", JSON.stringify(this.cacheStorage, null, 4));
+        const cacheItem = {expiration: expirationTime, comment: comment, item: newItem};
+        this.cacheStorage[key as keyof CacheStorage] =  cacheItem;
+
+        // Does this need to be synchronous?
+        fs.writeFileSync(this.cachePath, JSON.stringify(this.cacheStorage, null, 4));
     }
-
-    // static async saveCache() {
-    //     console.log("Saving cache.");
-    //     fs.writeFile('./cache.json', JSON.stringify(BaseballData.cache, null, 4), function(err) {
-    //         if(err) console.log(err)
-    //     })
-    // }
 }
