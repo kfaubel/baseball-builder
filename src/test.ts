@@ -23,7 +23,7 @@ async function run() {
 
     const cache: Cache = new Cache(logger, "baseball-sched-cache.json");
 
-    const baseballImage = new BaseballImage(logger, __dirname, cache);
+    const baseballImage = new BaseballImage(logger, cache);
 
     let teamTable: TeamTable;
 

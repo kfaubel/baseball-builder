@@ -31,11 +31,9 @@ export class BaseballImage {
     private dayList: GameDayObj[];
     private logger: Logger;
     private cache: Cache;
-    private dirname: string;
 
-    constructor(logger: Logger, dirname: string, cache: Cache) {
+    constructor(logger: Logger, cache: Cache) {
         this.logger = logger;
-        this.dirname = dirname;
         this.cache = cache;
         this.dayList = [];
         this.baseballData = new BaseballData(this.logger, this.cache);
@@ -56,7 +54,8 @@ export class BaseballImage {
         let teamTable: TeamTable;
 
         try {
-            const teamTablePath: string = path.join(this.dirname, "..", "teams.json");
+            const teamTablePath: string = path.join(__dirname, "..", "teams.json");
+            this.logger.info(`Looking for ${teamTablePath}`);
             const sampleBuffer = fs.readFileSync(teamTablePath);
             teamTable = JSON.parse(sampleBuffer.toString());
         } catch (e) {
@@ -143,17 +142,15 @@ export class BaseballImage {
             }
         }
 
-        const imageHeight = 1080; // 800;
-        const imageWidth = 1920; // 1280;
+        const imageHeight = 1080; 
+        const imageWidth = 1920; 
 
-        // const titleFont: string = 'bold 90px sans-serif';   // Title
-        // const gamesFont: string = 'bold 90px sans-serif';    // row of game data
         const titleFont = "90px 'OpenSans-Bold'"; // Title
         const gamesFont = "90px 'OpenSans-Bold'"; // row of game data
 
-        const fntBold     = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Bold.ttf"),"OpenSans-Bold");
-        const fntRegular  = pure.registerFont(path.join(this.dirname, "..", "fonts", "OpenSans-Regular.ttf"),"OpenSans-Regular");
-        const fntRegular2 = pure.registerFont(path.join(this.dirname, "..", "fonts", "alata-regular.ttf"),"alata-regular");
+        const fntBold     = pure.registerFont(path.join(__dirname, "..", "fonts", "OpenSans-Bold.ttf"),"OpenSans-Bold");
+        const fntRegular  = pure.registerFont(path.join(__dirname, "..", "fonts", "OpenSans-Regular.ttf"),"OpenSans-Regular");
+        const fntRegular2 = pure.registerFont(path.join(__dirname, "..", "fonts", "alata-regular.ttf"),"alata-regular");
 
         fntBold.loadSync();
         fntRegular.loadSync();
