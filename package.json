@@ -44,6 +44,8 @@
   "files": [
     "build/**/*",
     "teams.json",
-    "fonts/**/*"
+    "fonts/**/*",
+    "index.js",
+    "index.d.ts"
   ]
 }
