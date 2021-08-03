@@ -1,8 +1,9 @@
 {
   "name": "baseball-builder",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Module to build MLB schedule images for teams",
-  "main": "index.js",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "shx rm -rf build",
@@ -30,10 +31,10 @@
     "jpeg-js": "^0.4.2"
   },
   "devDependencies": {
-    "@types/node": "^12.12.22",
-    "@typescript-eslint/eslint-plugin": "^4.28.4",
-    "@typescript-eslint/parser": "^4.28.4",
-    "eslint": "^7.31.0",
+    "@types/node": "^12.20.18",
+    "@typescript-eslint/eslint-plugin": "^4.29.0",
+    "@typescript-eslint/parser": "^4.29.0",
+    "eslint": "^7.32.0",
     "np": "^7.5.0",
     "prettier": "^1.19.1",
     "shx": "^0.3.2",

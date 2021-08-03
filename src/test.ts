@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import path, { dirname } from "path";
+import path from "path";
 import { Logger } from "./Logger";
 import { BaseballImage, ImageResult } from "./BaseballImage";
 import { Cache } from "./Cache";
