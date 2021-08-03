@@ -55,11 +55,10 @@ export class BaseballImage {
 
         try {
             const teamTablePath: string = path.join(__dirname, "..", "teams.json");
-            this.logger.info(`Looking for ${teamTablePath}`);
             const sampleBuffer = fs.readFileSync(teamTablePath);
             teamTable = JSON.parse(sampleBuffer.toString());
         } catch (e) {
-            this.logger.error(`Could not read Teams Table: ${e.text}`);
+            this.logger.error(`Could not read Teams Table: ${teamTablePath} ${e.text}`);
             return null;
         }
         
