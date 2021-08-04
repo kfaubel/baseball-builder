@@ -7,18 +7,7 @@ import * as pure from "pureimage";
 import { Cache  } from "./Cache.js";
 import { Logger } from "./Logger.js";
 import { BaseballData, GameDayObj, Game } from "./BaseballData";
-
-interface Team {
-    redirect: string;
-    color1: string;
-    color2: string;
-    color3: string;
-    name: string;
-}
-
-interface TeamTable {
-    [key: string]: Team;
-}
+import { Team, TeamInfo } from "./TeamInfo";
 
 export interface ImageResult {
     expires: string;
@@ -39,52 +28,22 @@ export class BaseballImage {
         this.baseballData = new BaseballData(this.logger, this.cache);
     }
 
-    // This is the main entry point for this module.
-    // Input a 3 letter team abbreviation (see teams.json)
-    // Output:
-    // return {
-    //     jpegImg: jpegImg,
-    //     stream: jpegStream,
-    //     expires: expires.toUTCString(),
-    //     error: ""
-    // }
-    public async getImage(teamAbbrev: string): Promise<ImageResult | null> {
-
+    public async getImage(teamName: string): Promise<ImageResult | null> {
         // The teamTable has some extra entries that point to a different abbreviation to lookup
-        let teamTable: TeamTable;
+        // let teamTable: TeamTable;
+        // const teamTablePath: string = path.resolve("teams.json");
+        // try {
+        //     const sampleBuffer = fs.readFileSync(teamTablePath);
+        //     teamTable = JSON.parse(sampleBuffer.toString());
+        // } catch (e) {
+        //     this.logger.error(`Could not read Teams Table: ${teamTablePath} ${e.text}`);
+        //     return null;
+        // }
 
-        try {
-            const teamTablePath: string = path.join(__dirname, "..", "teams.json");
-            const sampleBuffer = fs.readFileSync(teamTablePath);
-            teamTable = JSON.parse(sampleBuffer.toString());
-        } catch (e) {
-            this.logger.error(`Could not read Teams Table: ${teamTablePath} ${e.text}`);
-            return null;
-        }
-        
-        let teamLookup = "";
-        let backgroundColor = "";
-        let DrawingColor = "";
-        let textColor = "";
-        try {
-            
-            const teamInfo = teamTable[teamAbbrev.toUpperCase()];
-            if (teamInfo === undefined) {
-                return null;
-            }
-    
-            const redirect: string = teamTable[teamAbbrev.toUpperCase()].redirect;
-            if (redirect !== undefined) {
-                teamLookup = redirect;
-            } else {
-                teamLookup = teamAbbrev.toUpperCase();
-            }
-    
-            backgroundColor = teamTable[teamAbbrev].color1; // 'rgb(71, 115, 89)'; // 0xff4f7359 - Fenway green
-            DrawingColor = teamTable[teamAbbrev].color2; // 'rgb(200, 200, 200)';
-            textColor = teamTable[teamAbbrev].color3; // 'white';
-        } catch (e) {
-            this.logger.error(`Could not find team ${teamAbbrev}in teams table: ${e.text}`);
+        const teamInfo: TeamInfo = new TeamInfo();
+        const team: Team | null = teamInfo.lookupTeam(teamName);
+        if (team === null) {
+            this.logger.error(`Could not find team ${teamName}in teams table`);
             return null;
         }
         
@@ -98,7 +57,7 @@ export class BaseballImage {
 
             // tslint:disable-next-line:no-console
             // this.logger.info("BaseballImage: [" + teamAbbrev + " (" + teamLookup + ")" + "] Requesting game for date: " + requestDate.toDateString());
-            const day: GameDayObj = await this.baseballData.getDate(requestDate, teamLookup);
+            const day: GameDayObj = await this.baseballData.getDate(requestDate, team.abbreviation);
             this.dayList.push(day);
         }
 
@@ -147,9 +106,10 @@ export class BaseballImage {
         const titleFont = "90px 'OpenSans-Bold'"; // Title
         const gamesFont = "90px 'OpenSans-Bold'"; // row of game data
 
-        const fntBold     = pure.registerFont(path.join(__dirname, "..", "fonts", "OpenSans-Bold.ttf"),"OpenSans-Bold");
-        const fntRegular  = pure.registerFont(path.join(__dirname, "..", "fonts", "OpenSans-Regular.ttf"),"OpenSans-Regular");
-        const fntRegular2 = pure.registerFont(path.join(__dirname, "..", "fonts", "alata-regular.ttf"),"alata-regular");
+        // When used as an npm package, fonts need to be installed in the top level of the main project
+        const fntBold     = pure.registerFont(path.join(".", "fonts", "OpenSans-Bold.ttf"),"OpenSans-Bold");
+        const fntRegular  = pure.registerFont(path.join(".", "fonts", "OpenSans-Regular.ttf"),"OpenSans-Regular");
+        const fntRegular2 = pure.registerFont(path.join(".", "fonts", "alata-regular.ttf"),"alata-regular");
 
         fntBold.loadSync();
         fntRegular.loadSync();
@@ -190,21 +150,21 @@ export class BaseballImage {
         //                 ctx.setFillColor(r, g, b, a);
         //                 ctx.strokeStyle = 'rgb(100, 100, 100)';
 
-        const title: string = teamTable[teamLookup].name + " Schedule";
+        const title: string = team.name + " Schedule";
 
         // Fill the bitmap
-        ctx.fillStyle = backgroundColor;
+        ctx.fillStyle = team.backgroundColor;
         ctx.lineWidth = boarderStrokeWidth;
         ctx.fillRect(0, 0, imageWidth, imageHeight);
 
         // Draw the title
-        ctx.fillStyle = textColor;
+        ctx.fillStyle = team.textColor;
         ctx.font = titleFont;
         const textWidth: number = ctx.measureText(title).width;
         ctx.fillText(title, (imageWidth - textWidth) / 2, TitleOffset);
 
         // Draw the outline
-        ctx.strokeStyle = DrawingColor;
+        ctx.strokeStyle = team.accentColor;
         ctx.lineWidth = OutlineStrokeWidth;
         //ctx.strokeRect(0, 0, imageWidth, imageHeight); // Pure does not seem to use lineWidth in strokeRect
         ctx.beginPath();
@@ -225,7 +185,7 @@ export class BaseballImage {
         const boxLeftX = boxHorMargin;
 
         // Draw the box
-        ctx.strokeStyle = DrawingColor;
+        ctx.strokeStyle = team.accentColor;
         ctx.lineWidth = boxStrokeWidth;
         //ctx.strokeRect(boxLeftX, boxTopY, boxWidth, boxHeight); // Pure does not seem to use lineWidth in strokeRect
         ctx.beginPath();
@@ -248,7 +208,7 @@ export class BaseballImage {
             const gameDate = game.date;
 
             if (game.status !== "OFF") {
-                ctx.fillStyle = textColor;
+                ctx.fillStyle = team.textColor;
                 ctx.font = gamesFont;
 
                 let opponent = "";
@@ -258,7 +218,7 @@ export class BaseballImage {
                 let topStr = "";
                 let gameTime = "";
 
-                if (game.home_name_abbrev === teamLookup) {
+                if (game.home_name_abbrev === team.abbreviation) {
                     opponent = game.away_name_abbrev as string;
                     gameTime = game.home_time as string;
                     homeAway = "v";
@@ -271,7 +231,7 @@ export class BaseballImage {
                 let gameText = "";
                 switch (game.status) {
                 case "In Progress":
-                    if (game.home_name_abbrev === teamLookup) {
+                    if (game.home_name_abbrev === team.abbreviation) {
                         usRuns = game.home_team_runs as string;
                         themRuns = game.away_team_runs as string;
                     } else {
@@ -308,7 +268,7 @@ export class BaseballImage {
                 case "Final: Tied":
                 case "Game Over":
                 case "Completed Early: Rain":
-                    if (game.home_name_abbrev === teamLookup) {
+                    if (game.home_name_abbrev === team.abbreviation) {
                         usRuns = game.home_team_runs as string;
                         themRuns = game.away_team_runs as string;
                     } else {
@@ -339,7 +299,7 @@ export class BaseballImage {
 
                 ctx.fillText(gameDay, dayXOffset, yOffset);
                 ctx.fillText(gameDate, dateXOffset, yOffset);
-                ctx.fillText(teamLookup, teamXOffset, yOffset);
+                ctx.fillText(team.abbreviation, teamXOffset, yOffset);
                 ctx.fillText(homeAway, homeAwayX, yOffset);
                 ctx.fillText(opponent, opponentXOffset, yOffset);
                 ctx.fillText(gameText, gameTextXOffset, yOffset);

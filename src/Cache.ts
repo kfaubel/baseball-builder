@@ -29,26 +29,26 @@ export class Cache {
         try {
             const cacheData: Buffer | null | undefined = fs.readFileSync(this.cachePath);
             if (cacheData !== undefined && cacheData !== null) {
+                this.logger.verbose(`Cache: Using: ${this.cacheName}`); // ${JSON.stringify(this.cacheStorage, null, 4)}`);
+  
                 this.cacheStorage = JSON.parse(cacheData.toString());
 
                 for (const [key, value] of Object.entries(this.cacheStorage)) {
                     const cacheItem = this.cacheStorage[key];
         
                     if (cacheItem.expiration < new Date().getTime()) {
-                        this.logger.info(`Cache load: ${key} has expired, deleting`);
+                        this.logger.info(`Cache load: '${key}' has expired, deleting`);
                         delete this.cacheStorage[key];
                     } else {
-                        this.logger.verbose(`Cache load: ${key} still good.`);
+                        this.logger.verbose(`Cache load: '${key}' still good.`);
                     }
                 }
             } else {
-                this.logger.verbose(`Cache: no previous cache, creating new: ${this.cacheName}`);
+                this.logger.verbose(`Cache: Creating: ${this.cacheName}`);
             }
         } catch (e) {
-            this.logger.verbose(`Cache: no previous cache, creating new: ${this.cacheName}`);
+            this.logger.verbose(`Cache: Creating: ${this.cacheName}`);
         }
-
-        this.logger.verbose(`Cache: constructor: previous cache found ${this.cachePath}`); // ${JSON.stringify(this.cacheStorage, null, 4)}`);
     }
 
     public get(key: string): unknown {
@@ -61,14 +61,14 @@ export class Cache {
             const now = new Date();
             if (expiration > now.getTime()) {
                 // object is current
-                this.logger.verbose("Cache: Key: " + key + " - cache hit");
+                this.logger.verbose(`Cache: Key: '${key}' - cache hit`);
                 return item;
             } else {
                 // object expired
-                this.logger.verbose("Cache: Key: " + key + " - cache expired");
+                this.logger.verbose(`Cache: Key: '${key}' - cache expired`);
             }
         } else {
-            this.logger.verbose("Cache: Key: " + key + " - cache miss");
+            this.logger.verbose(`Cache: Key: '${key}' - cache miss`);
         }
 
         return null;
