@@ -10,6 +10,6 @@ export declare class BaseballImage {
     private dayList;
     private logger;
     private cache;
-    constructor(logger: Logger, cache: Cache);
+    constructor(logger: LoggerInterface, cache: KacheInterface);
     getImage(teamAbbrev: string): Promise<ImageResult | null>;
 }
