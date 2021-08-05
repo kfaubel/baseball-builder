@@ -3,18 +3,18 @@ import fs = require("fs");
 import path from "path";
 import { Logger } from "./Logger";
 
-interface CacheItem {
+interface KacheItem {
     expiration: number;
     comment: string;
     item: unknown;
 }
 
-export interface CacheStorage {
-    [key: string]: CacheItem;
+export interface KacheStorage {
+    [key: string]: KacheItem;
 }
 
-export class Cache {
-    private cacheStorage: CacheStorage; 
+export class Kache {
+    private cacheStorage: KacheStorage; 
     private cacheName: string;
     private cachePath: string;
 
@@ -53,7 +53,7 @@ export class Cache {
 
     public get(key: string): unknown {
         if (this.cacheStorage[key] !== undefined) {
-            const cacheItem: CacheItem = this.cacheStorage[key as keyof CacheStorage];
+            const cacheItem: KacheItem = this.cacheStorage[key as keyof CacheStorage];
 
             const expiration: number = cacheItem.expiration;
             const item: unknown    = cacheItem.item;

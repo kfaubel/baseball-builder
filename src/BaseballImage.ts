@@ -1,10 +1,9 @@
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
-import * as fs from "fs";
 import jpeg from "jpeg-js";
 import path from "path";
 import * as pure from "pureimage";
-import { Cache  } from "./Cache.js";
+import { Kache  } from "./Kache.js";
 import { Logger } from "./Logger.js";
 import { BaseballData, GameDayObj, Game } from "./BaseballData";
 import { Team, TeamInfo } from "./TeamInfo";
@@ -19,9 +18,9 @@ export class BaseballImage {
     private baseballData: BaseballData;
     private dayList: GameDayObj[];
     private logger: Logger;
-    private cache: Cache;
+    private cache: Kache;
 
-    constructor(logger: Logger, cache: Cache) {
+    constructor(logger: Logger, cache: Kache) {
         this.logger = logger;
         this.cache = cache;
         this.dayList = [];

@@ -3,7 +3,7 @@ import * as fs from "fs";
 import path from "path";
 import { Logger } from "./Logger";
 import { BaseballImage, ImageResult } from "./BaseballImage";
-import { Cache } from "./Cache";
+import { Kache } from "./Kache";
 import { Team, TeamInfo } from "./TeamInfo";
 
 async function run() {
@@ -11,7 +11,7 @@ async function run() {
 
     fs.mkdirSync("./teams/", { recursive: true });
 
-    const cache: Cache = new Cache(logger, "baseball-sched-cache.json");
+    const cache: Kache = new Kache(logger, "baseball-sched-cache.json");
 
     const baseballImage = new BaseballImage(logger, cache);
 

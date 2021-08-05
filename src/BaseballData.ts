@@ -3,7 +3,7 @@
 
 import axios, { AxiosResponse } from "axios";
 import { Logger } from "./Logger.js";
-import { Cache } from "./Cache.js";
+import { Kache } from "./Kache.js";
 
 // From a post on reddit.   This may be what's next
 // You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
@@ -48,9 +48,9 @@ export interface GameDayObj {
 
 export class BaseballData {
     private logger: Logger;
-    private cache: Cache;
+    private cache: Kache;
 
-    constructor(logger: Logger, cache: Cache) {
+    constructor(logger: Logger, cache: Kache) {
         this.logger = logger;
         this.cache = cache;
     }
