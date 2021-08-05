@@ -2,8 +2,8 @@
 // tslint:disable: no-var-requires
 
 import axios, { AxiosResponse } from "axios";
-import { Logger } from "./Logger.js";
-import { Kache } from "./Kache.js";
+import { LoggerInterface } from "./Logger.js";
+import { KacheInterface } from "./Kache.js";
 
 // From a post on reddit.   This may be what's next
 // You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
@@ -47,10 +47,10 @@ export interface GameDayObj {
 }
 
 export class BaseballData {
-    private logger: Logger;
-    private cache: Kache;
+    private logger: LoggerInterface;
+    private cache: KacheInterface;
 
-    constructor(logger: Logger, cache: Kache) {
+    constructor(logger: LoggerInterface, cache: KacheInterface) {
         this.logger = logger;
         this.cache = cache;
     }

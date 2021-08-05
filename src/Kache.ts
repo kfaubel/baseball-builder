@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import fs = require("fs");
 import path from "path";
-import { Logger } from "./Logger";
+import { LoggerInterface } from "./Logger";
 
 interface KacheItem {
     expiration: number;
@@ -13,14 +13,19 @@ export interface KacheStorage {
     [key: string]: KacheItem;
 }
 
-export class Kache {
+export interface KacheInterface {
+    get(key: string): unknown;
+    set(key: string, newItem: unknown, expirationTime: number): void;
+}
+
+export class Kache implements KacheInterface {
     private cacheStorage: KacheStorage; 
     private cacheName: string;
     private cachePath: string;
 
-    private logger: Logger;
+    private logger: LoggerInterface;
 
-    constructor(logger: Logger, cacheName: string) {
+    constructor(logger: LoggerInterface, cacheName: string) {
         this.logger = logger;
         this.cacheName = cacheName;
         this.cachePath = path.resolve(__dirname, "..", this.cacheName);

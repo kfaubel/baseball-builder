@@ -1,4 +1,12 @@
 "use strict";
+export interface LoggerInterface {
+    error(text: string): void;
+    warn(text: string): void;
+    log(text: string): void;
+    info(text: string): void;
+    verbose(text: string): void;
+    trace(text: string): void;
+}
 
 export class Logger {
     private module: string;

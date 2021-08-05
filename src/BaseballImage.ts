@@ -3,8 +3,8 @@
 import jpeg from "jpeg-js";
 import path from "path";
 import * as pure from "pureimage";
-import { Kache  } from "./Kache.js";
-import { Logger } from "./Logger.js";
+import { KacheInterface  } from "./Kache.js";
+import { LoggerInterface } from "./Logger.js";
 import { BaseballData, GameDayObj, Game } from "./BaseballData";
 import { Team, TeamInfo } from "./TeamInfo";
 
@@ -17,10 +17,10 @@ export interface ImageResult {
 export class BaseballImage {
     private baseballData: BaseballData;
     private dayList: GameDayObj[];
-    private logger: Logger;
-    private cache: Kache;
+    private logger: LoggerInterface;
+    private cache: KacheInterface;
 
-    constructor(logger: Logger, cache: Kache) {
+    constructor(logger: LoggerInterface, cache: KacheInterface) {
         this.logger = logger;
         this.cache = cache;
         this.dayList = [];
