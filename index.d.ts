@@ -6,10 +6,6 @@ export interface ImageResult {
     imageData: jpeg.BufferRet | null;
 }
 export declare class BaseballImage {
-    private baseballData;
-    private dayList;
-    private logger;
-    private cache;
     constructor(logger: LoggerInterface, cache: KacheInterface);
     getImage(teamAbbrev: string): Promise<ImageResult | null>;
 }
