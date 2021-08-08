@@ -123,7 +123,7 @@ export class BaseballImage {
         const firstGameYOffset = 265;
         const gameYOffset = 130;
 
-        const boxHeight1 = 110;
+        const boxHeight1 = 115;
         const boxHeight2 = boxHeight1 + gameYOffset; // Double header
         const boxHorMargin = 30;
         const boxTopY = 440;

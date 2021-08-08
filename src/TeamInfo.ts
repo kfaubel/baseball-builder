@@ -34,7 +34,7 @@ const teamsTable: Teams = {
         abbreviation: "ARI",
         backgroundColor: "#A71930",
         accentColor: "#E3D4AD",
-        textColor: "#E3D4AD"
+        textColor: "#FFFFFF"
     },
     ATL: {
         name: "Atlanta Braves",
@@ -69,7 +69,7 @@ const teamsTable: Teams = {
         abbreviation: "CWS",
         backgroundColor: "#27251F",
         accentColor: "#C4CED4",
-        textColor: "#C4CED4"
+        textColor: "#FFFFFF"
     },
     CIN: {
         name: "Cincinnati Reds",
@@ -124,7 +124,7 @@ const teamsTable: Teams = {
         name: "Los Angeles Dodgers",
         abbreviation: "LAD",
         backgroundColor: "#005A9C",
-        accentColor: "#FFFFFF",
+        accentColor: "#EF3E42",
         textColor: "#FFFFFF"
     },
     MIA: {
@@ -209,7 +209,7 @@ const teamsTable: Teams = {
         abbreviation: "STL",
         backgroundColor: "#C41E3A",
         accentColor: "#FEDB00",
-        textColor: "#0C2340"
+        textColor: "#FFFFFF"
     },
     TB: {
         name: "Tampa Bay Rays",
