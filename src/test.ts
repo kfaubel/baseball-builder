@@ -11,7 +11,7 @@ import { SimpleImageWriter } from "./SimpleImageWriter";
 async function run() {
     const logger = new Logger("baseball-builder", "verbose");
     const cache: Kache = new Kache(logger, "baseball-sched-cache.json");
-    const simpleImageWriter: SimpleImageWriter = new SimpleImageWriter();
+    const simpleImageWriter: SimpleImageWriter = new SimpleImageWriter(logger, ".");
     const baseballBuilder: BaseballBuilder = new BaseballBuilder(logger, cache, simpleImageWriter);
     
     fs.mkdirSync("./teams/", { recursive: true });
