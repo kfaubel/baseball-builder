@@ -15,7 +15,7 @@ export interface KacheInterface {
 }
 
 export interface ImageWriterInterface {
-    saveImage(fileName: string, buf: Buffer): void;
+    saveFile(fileName: string, buf: Buffer): void;
 }
 
 export declare class BaseballBuilder {

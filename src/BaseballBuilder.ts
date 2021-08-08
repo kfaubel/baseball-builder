@@ -44,7 +44,7 @@ export class BaseballBuilder {
                     if (result !== null && result.imageData !== null) {
                         const fileName = `./teams/${teamName}.jpg`;
                         this.logger.info(`CreateImages:   Writing from data: ${fileName}`);
-                        this.writer.saveImage(fileName, result.imageData.data);
+                        this.writer.saveFile(fileName, result.imageData.data);
                     } else {
                         this. logger.error(`CreateImages: Failed to write image for ${team}`);
                         exitStatus = false;
