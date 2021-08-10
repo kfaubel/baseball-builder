@@ -2,8 +2,8 @@
   "name": "baseball-builder",
   "version": "1.0.12",
   "description": "Module to build MLB schedule images for teams",
-  "main": "./build/index.js",
-  "types": "./build/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "shx rm -rf build",
