@@ -5,7 +5,7 @@ import path from "path";
 import * as pure from "pureimage";
 import { KacheInterface  } from "./Kache.js";
 import { LoggerInterface } from "./Logger.js";
-import { BaseballData, GameDayObj, Game } from "./BaseballData";
+import { GameDay, Game } from "./BaseballData";
 import { Team, TeamInfo } from "./TeamInfo";
 
 export interface ImageResult {
@@ -15,19 +15,15 @@ export interface ImageResult {
 }
 
 export class BaseballImage {
-    private baseballData: BaseballData;
-    private dayList: GameDayObj[];
     private logger: LoggerInterface;
     private cache: KacheInterface;
 
     constructor(logger: LoggerInterface, cache: KacheInterface) {
         this.logger = logger;
         this.cache = cache;
-        this.dayList = [];
-        this.baseballData = new BaseballData(this.logger, this.cache);
     }
 
-    public async getImage(teamName: string): Promise<ImageResult | null> {
+    public async getImage(teamName: string, dayList: Array<GameDay>): Promise<ImageResult | null> {
         // The teamTable has some extra entries that point to a different abbreviation to lookup
         // let teamTable: TeamTable;
         // const teamTablePath: string = path.resolve("teams.json");
@@ -45,20 +41,8 @@ export class BaseballImage {
             this.logger.error(`Could not find team ${teamName}in teams table`);
             return null;
         }
+
         
-        // let day = await baseballData.getDate(new Date(), teamAbbrev); // Test the cache
-
-        // Get date 2 days ago through 4 days from now.  7 Days total
-        for (let dayIndex = -2; dayIndex <= 4; dayIndex++) {
-            // const requestDate = new Date("2019/09/10");
-            const requestDate = new Date();
-            requestDate.setDate(requestDate.getDate() + dayIndex);
-
-            // tslint:disable-next-line:no-console
-            // this.logger.info("BaseballImage: [" + teamAbbrev + " (" + teamLookup + ")" + "] Requesting game for date: " + requestDate.toDateString());
-            const day: GameDayObj = await this.baseballData.getDate(requestDate, team.abbreviation);
-            this.dayList.push(day);
-        }
 
         // Now sort through the 7 days of games to see which ones to show.
         // * Double headers cause us to show different games than 1/day
@@ -68,33 +52,33 @@ export class BaseballImage {
         const TODAY = 2; // Index in the array of today's game
 
         // Slot 0 - if Yesterday was a double header, its game 1, else its the last game from the day before yesterday
-        if (this.dayList[TODAY - 1].games.length === 2) {
-            gameList[0] = this.dayList[TODAY - 1].games[0]; // First game from yesterday
+        if (dayList[TODAY - 1].games.length === 2) {
+            gameList[0] = dayList[TODAY - 1].games[0]; // First game from yesterday
         } else {
-            if (this.dayList[TODAY - 2].games.length === 2) {
+            if (dayList[TODAY - 2].games.length === 2) {
                 // there was a doubleheader 2 days ago, show the second game
-                gameList[0] = this.dayList[TODAY - 2].games[1];
+                gameList[0] = dayList[TODAY - 2].games[1];
             } else {
                 // No double header either day so just show game 1, null if OFF
-                gameList[0] = this.dayList[TODAY - 2].games[0];
+                gameList[0] = dayList[TODAY - 2].games[0];
             }
         }
 
         // Slot 1 - This is yesterdays game 2 if there was one, otherwise game 1 if played, otherwise null
-        if (this.dayList[TODAY - 1].games.length === 2) {
-            gameList[1] = this.dayList[TODAY - 1].games[1];
+        if (dayList[TODAY - 1].games.length === 2) {
+            gameList[1] = dayList[TODAY - 1].games[1];
         } else {
             // No double header either day so just show game 1, null if OFF
-            gameList[1] = this.dayList[TODAY - 1].games[0];
+            gameList[1] = dayList[TODAY - 1].games[0];
         }
 
         // Slots 2..6 - Fill them in with each game.  We may use more slots but we only will display 0-6
         let nextGameSlot = 2; // Today's game 1
         for (let daySlot = TODAY; daySlot <= TODAY + 4; daySlot++) {
-            gameList[nextGameSlot++] = this.dayList[daySlot].games[0];
+            gameList[nextGameSlot++] = dayList[daySlot].games[0];
 
-            if (this.dayList[daySlot].games.length === 2) {
-                gameList[nextGameSlot++] = this.dayList[daySlot].games[1];
+            if (dayList[daySlot].games.length === 2) {
+                gameList[nextGameSlot++] = dayList[daySlot].games[1];
                 // console.log("Adding game 2 to the game list");
             }
         }
@@ -176,7 +160,7 @@ export class BaseballImage {
 
         // Draw the box for today.  Make it bigger if its a double header
         let boxHeight: number = boxHeight1;
-        if (this.dayList[2].games.length === 2) {
+        if (dayList[2].games.length === 2) {
             boxHeight = boxHeight2;
         }
 
@@ -293,8 +277,7 @@ export class BaseballImage {
                 }
 
                 // The 'v' or '@' needs to be centered
-                const homeAwayX =
-                    homeAwayXOffset - ctx.measureText(homeAway).width / 2;
+                const homeAwayX = homeAwayXOffset - ctx.measureText(homeAway).width / 2;
 
                 ctx.fillText(gameDay, dayXOffset, yOffset);
                 ctx.fillText(gameDate, dateXOffset, yOffset);
