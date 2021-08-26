@@ -9,7 +9,6 @@ import { GameDay, Game } from "./BaseballData";
 import { Team, TeamInfo } from "./TeamInfo";
 
 export interface ImageResult {
-    expires: string;
     imageType: string;
     imageData: jpeg.BufferRet | null;
 }
@@ -21,6 +20,35 @@ export class BaseballImage {
     constructor(logger: LoggerInterface, cache: KacheInterface) {
         this.logger = logger;
         this.cache = cache;
+    }
+
+    // This optimized fillRect was derived from the pureimage source code: https://github.com/joshmarinacci/node-pureimage/tree/master/src
+    // To fill a 1920x1080 image on a core i5, this saves about 1.5 seconds
+    // img        - image - it has 3 properties height, width and data
+    // x, y       - position of the rect
+    // w, h       - size of the rect
+    // rgb        - must be a string in this form "#112233"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private myFillRect(img: any, x: number, y: number, w: number, h: number, rgb: string) {
+        const colorValue = parseInt(rgb.substring(1), 16);
+
+        // the shift operator forces js to perform the internal ToUint32 (see ecmascript spec 9.6)
+        //colorValue = colorValue >>> 0;
+        const r = (colorValue >>> 16) & 0xFF;
+        const g = (colorValue >>> 8)  & 0xFF;  
+        const b = (colorValue)        & 0xFF;
+        const a = 0xFF;
+
+        for(let i = y; i < y + h; i++) {                
+            for(let j = x; j < x + w; j++) {   
+                const index = (i * img.width + j) * 4;   
+                
+                img.data[index + 0] = r;
+                img.data[index + 1] = g;     
+                img.data[index + 2] = b;     
+                img.data[index + 3] = a; 
+            }
+        }
     }
 
     public async getImage(teamName: string, dayList: Array<GameDay>): Promise<ImageResult | null> {
@@ -41,8 +69,6 @@ export class BaseballImage {
             this.logger.error(`Could not find team ${teamName}in teams table`);
             return null;
         }
-
-        
 
         // Now sort through the 7 days of games to see which ones to show.
         // * Double headers cause us to show different games than 1/day
@@ -98,8 +124,7 @@ export class BaseballImage {
         fntRegular.loadSync();
         fntRegular2.loadSync();
 
-        const OutlineStrokeWidth = 30;
-        const boarderStrokeWidth = 30;
+        const boarderStrokeWidth = 20;
         const boxStrokeWidth = 10;
 
         const TitleOffset = 120;
@@ -137,8 +162,9 @@ export class BaseballImage {
 
         // Fill the bitmap
         ctx.fillStyle = team.backgroundColor;
-        ctx.lineWidth = boarderStrokeWidth;
-        ctx.fillRect(0, 0, imageWidth, imageHeight);
+        //ctx.lineWidth = boarderStrokeWidth;
+        //ctx.fillRect(0, 0, imageWidth, imageHeight);
+        this.myFillRect(img, 0, 0, imageWidth, imageHeight, team.backgroundColor);
 
         // Draw the title
         ctx.fillStyle = team.textColor;
@@ -148,14 +174,14 @@ export class BaseballImage {
 
         // Draw the outline
         ctx.strokeStyle = team.accentColor;
-        ctx.lineWidth = OutlineStrokeWidth;
+        ctx.lineWidth = boarderStrokeWidth;
         //ctx.strokeRect(0, 0, imageWidth, imageHeight); // Pure does not seem to use lineWidth in strokeRect
         ctx.beginPath();
-        ctx.moveTo(0 + OutlineStrokeWidth / 2, 0 + OutlineStrokeWidth / 2);
-        ctx.lineTo(imageWidth, 0 + OutlineStrokeWidth / 2);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(imageWidth, 0);
         ctx.lineTo(imageWidth, imageHeight);
-        ctx.lineTo(0 + OutlineStrokeWidth / 2, imageHeight);
-        ctx.lineTo(0 + OutlineStrokeWidth / 2, 0); // Y is all the way up to fill in the top corner
+        ctx.lineTo(0, imageHeight);
+        ctx.lineTo(0, boarderStrokeWidth/2); 
         ctx.stroke();
 
         // Draw the box for today.  Make it bigger if its a double header
@@ -172,15 +198,12 @@ export class BaseballImage {
         ctx.lineWidth = boxStrokeWidth;
         //ctx.strokeRect(boxLeftX, boxTopY, boxWidth, boxHeight); // Pure does not seem to use lineWidth in strokeRect
         ctx.beginPath();
-        ctx.moveTo(boxLeftX, boxTopY);
+        ctx.moveTo(boxLeftX - boxStrokeWidth / 2, boxTopY);
         ctx.lineTo(boxWidth, boxTopY);
         ctx.lineTo(boxWidth, boxTopY + boxHeight);
         ctx.lineTo(boxLeftX, boxTopY + boxHeight);
-        ctx.lineTo(boxLeftX, boxTopY - boxStrokeWidth / 2); // Fill in the little corner that was missed
+        ctx.lineTo(boxLeftX, boxTopY + boxStrokeWidth / 2); // Fill in the little corner that was missed
         ctx.stroke();
-
-        // How long is this image good for
-        let goodForMins = 60;
 
         for (let gameIndex = 0; gameIndex <= 6; gameIndex++) {
             const yOffset: number = firstGameYOffset + gameIndex * gameYOffset;
@@ -223,29 +246,26 @@ export class BaseballImage {
                     }
 
                     if (game.top_inning as string === "Y") {
-                        topStr = "^"; //"\u25B2"; // up arrow
+                        topStr = "Top "; //"\u25B2"; // up arrow
                     } else {
-                        topStr = "v"; //"\u25BC"; // down arrow
+                        topStr = "Bot "; //"\u25BC"; // down arrow
                     }
 
                     gameText =
                             usRuns +
                             "-" +
                             themRuns +
-                            "    " +
+                            "   " +
                             topStr +
                             game.inning;
-                    goodForMins = 10;
                     break;
                 case "Warmup":
                     gameText = "Warm up";
-                    goodForMins = 30;
                     break;
                 case "Pre-game":
                 case "Preview":
                 case "Scheduled":
                     gameText = gameTime;
-                    goodForMins = 60;
                     break;
                 case "Final":
                 case "Final: Tied":
@@ -260,16 +280,13 @@ export class BaseballImage {
                     }
 
                     gameText = usRuns + "-" + themRuns + " F";
-                    goodForMins = 240;
                     break;
                 case "Postponed":
                     gameText = "PPD";
-                    goodForMins = 240;
                     break;
                 case "Suspended":
                 case "Suspended: Rain":
                     gameText = "SPND";
-                    goodForMins = 240;
                     break;
                 default:
                     gameText = game.status;
@@ -293,15 +310,11 @@ export class BaseballImage {
             }
         }
 
-        const expires = new Date();
-        expires.setMinutes(expires.getMinutes() + goodForMins);
-
-        const jpegImg = jpeg.encode(img, 50);
+        const jpegImg = jpeg.encode(img, 90);
 
         return {
             imageData: jpegImg,
-            imageType: "jpg",
-            expires: expires.toUTCString()
+            imageType: "jpg"
         };
     }
 }
