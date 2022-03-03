@@ -21,21 +21,21 @@ import { KacheInterface } from "./Kache.js";
 // Not all data is present
 
 export interface Game {
-    status: string;           // "Scheduled"
-    series?: string;          // "Regular Season"
-    game_type?: string        // "R"
-    day: string;
-    date: string;
-    home_time?: string;
-    away_time?: string;
-    home_team_runs?: string;
-    away_team_runs?: string;
-    home_name_abbrev?: string; // BOS
-    away_name_abbrev?: string;
-    event_time?: string;
-    home_score?: string;
-    away_score?: string;
-    inning?: string;
+    status: string;             // Scheduled, Warmup, Pre-game, Pre-Game, Preview, Delayed, Final, Game Over, Postponed
+    series?: string;            // "Regular Season"
+    game_type?: string          // "R"
+    day: string;                // Tue
+    date: string;               // May 5
+    home_time?: string;         // "5:05 PM"
+    away_time?: string;         // "5:05 PM"
+    home_team_runs?: string;    // 4
+    away_team_runs?: string;    // 2
+    home_name_abbrev?: string;  // BOS
+    away_name_abbrev?: string;  // NYY
+    event_time?: string;        // "5:05 PM"
+    home_score?: string;        // 4
+    away_score?: string;        // 2
+    inning?: string;            // 9
     top_inning?: string;        // "N"
 }
 
@@ -109,7 +109,7 @@ export class BaseballData {
             const url = `https://gd2.mlb.com/components/game/mlb/year_${year}/month_${month}/day_${day}/miniscoreboard.json`;
 
             this.logger.info(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
-            // this.logger.info("BaseballData: URL: " + url);
+            this.logger.info("BaseballData: URL: " + url);
 
             try {
                 const response: AxiosResponse = await axios.get(url, {headers: {"Content-Encoding": "gzip"}});
