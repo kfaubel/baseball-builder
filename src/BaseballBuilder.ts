@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { LoggerInterface } from "./Logger";
@@ -6,6 +7,7 @@ import { KacheInterface } from "./Kache";
 import { Team, TeamInfo } from "./TeamInfo";
 import { ImageWriterInterface } from "./SimpleImageWriter";
 import { BaseballData, GameDay } from "./BaseballData";
+import moment from "moment-timezone";
 
 // export interface BaseBallBuilderParams {
 //     teamList: Array<string>;
@@ -27,8 +29,10 @@ export class BaseballBuilder {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async CreateImages(params: any): Promise<boolean>{
         let exitStatus = true;
+        const nowMoment = moment(); // now
+
         try {
-            if (this.baseballData.isCacheCurrent()) {
+            if (this.baseballData.isCacheCurrent(nowMoment)) {
                 this.logger.info("No cache changes since last time, images are up to date.");
                 return true;
             }
@@ -44,13 +48,15 @@ export class BaseballBuilder {
             for (const teamName of params.teamList) {
                 const team: Team | null = teamInfo.lookupTeam(teamName);
                 if (team !== null) {
-                    this.logger.info(`CreateImages: Starting process for team:  ${teamName}`);
+                    this.logger.verbose(`CreateImages: Starting process for team:  ${teamName} at ${nowMoment.format()}`);
 
-                    const dayList: Array<GameDay> | null = await this.baseballData.getTeamGames(team.abbreviation);
+                    const dayList: Array<GameDay> | null = await this.baseballData.getTeamGames(team.abbreviation, nowMoment);
                     if (dayList === null) {
                         exitStatus = false;
                         continue;
                     }
+
+                    this.logger.verbose(`dayList for ${team.abbreviation}\n${JSON.stringify(dayList, null, 4)}`);
                 
                     const result: ImageResult | null = await baseballImage.getImage(teamName, dayList);
 
@@ -66,8 +72,9 @@ export class BaseballBuilder {
                     this. logger.error(`CreateImages: Unable to find team ${teamName}`);
                 }
             }
-        } catch (e) {
+        } catch (e:any) {
             this.logger.error(`CreateImages: exception: ${e}`);
+            this.logger.error(`Stack: ${e.stack}`);
         }
 
         return exitStatus;

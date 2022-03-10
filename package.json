@@ -7,8 +7,8 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "shx rm -rf build",
-    "test": "npm run build && node app.js",
-    "start": "npm run build && node app.js",
+    "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL",
+    "start": "npm run build && node app.js --newcache BOS LAD MIL",
     "prepare": "npm run build",
     "publish": "echo Published.",
     "install": "echo Installed.",
@@ -26,7 +26,9 @@
   "homepage": "https://github.com/kfaubel/baseball-builder#readme",
   "dependencies": {
     "axios": "^0.25.0",
+    "commander": "^9.0.0",
     "jpeg-js": "^0.4.3",
+    "moment-timezone": "^0.5.34",
     "npm-check-updates": "^12.3.0",
     "pureimage": "^0.3.8",
     "xml-js": "^1.6.11"

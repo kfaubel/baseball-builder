@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // tslint:disable: object-literal-sort-keys
 // tslint:disable: no-var-requires
 
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { LoggerInterface } from "./Logger.js";
 import { KacheInterface } from "./Kache.js";
+import { Team, TeamInfo } from "./TeamInfo";
+import moment from "moment-timezone";  // https://momentjs.com/timezone/docs/ &  https://momentjs.com/docs/
 
 // From a post on reddit.   This may be what's next
 // You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
@@ -17,10 +20,11 @@ import { KacheInterface } from "./Kache.js";
 // Once you start poking around you can figure things out. You can also get scores from offseason leagues.
 // For example, here is a score from a game today: http://statsapi.mlb.com//api/v1/game/569984/feed/live
 
-// New data source : https://www.baseball.gov/documentation/services-web-api
-// Not all data is present
-
-export interface Game {
+/**
+ * Structure we return so the image can render game data
+ * * This is externally facing
+ */
+export interface GameDetails {
     status: string;             // Scheduled, Warmup, Pre-game, Pre-Game, Preview, Delayed, Final, Game Over, Postponed
     series?: string;            // "Regular Season"
     game_type?: string          // "R"
@@ -32,29 +36,77 @@ export interface Game {
     away_team_runs?: string;    // 2
     home_name_abbrev?: string;  // BOS
     away_name_abbrev?: string;  // NYY
-    event_time?: string;        // "5:05 PM"
-    home_score?: string;        // 4
-    away_score?: string;        // 2
+    event_time?: string;        // "5:05 PM" 
     inning?: string;            // 9
     top_inning?: string;        // "N"
 }
 
 // Object with a single game for a team for a given day
+/**
+ * Object with game(s) for a team on any given day.
+ * * games[] will have 0, 1 or 2 games
+ * * 0 - Off day
+ * * 1 - Single game
+ * * 2 - Doubleheader
+ */
 export interface GameDay {
-    team: string;
+    team: string;               // BOS
     year?: string;
     month?: string;
     day?: string;
-    games: Array<Game>; // normally only 1 entry but 2 for a double header
+    games: Array<GameDetails>;  // normally only 1 entry but 2 for a double header
 }
 
-export interface BaseballJson {
-    data?: {
-        games?: {
-            game?: Array<Game>;
+/**
+ * Array of games
+ * * Each game is formatted and ready to be used to build an image
+ * * This array contains GameDay elements for 7 days
+ */
+export type GameList = GameDetails[]; 
+
+/**
+ * Format of the feed element for a given game
+ * * This is useful to describe the feed
+ * * Elements need to be formatted to be useful
+ */
+interface FeedGame {
+    gamePk?: number;
+    gameDate: string;                 // ISO date-time
+    gameType: string;                 // "R" - Regular Season
+    status?: {
+        abstractGameState: string;    // "Final", ...
+        codeGameState: string;        // "F"
+        stausCode: string;            // 'F', ...
+    }
+    teams?: {
+        away: {
+            score?: number;
+            team: {
+                id: number;
+                name: string;
+                link: string;
+            }
         }
-    };
+        home: {
+            score?: number;
+            team: {
+                id: number;
+                name: string;
+                link: string;
+            }
+        }
+    }
 }
+
+/**
+ * This is the games element of the feed
+ * * Each element in the array is a FeedGame type
+ * * If there are no games, this array will be empty
+ */
+ type FeedList = FeedGame[]; 
+// interface FeedList {
+//     games?: Array<FeedGame>
+// }
 
 export class BaseballData {
     private logger: LoggerInterface;
@@ -65,19 +117,15 @@ export class BaseballData {
         this.cache = cache;
     }
 
-    private getKeyForDate(date: Date): string {
-        const year  = `${date.getFullYear()}`;                     // 2019
-        const month = ("00" + (date.getMonth() + 1)).slice(-2);    // 10       getMonth() returns 0-11
-        const day   = ("00" + date.getDate()).slice(-2);           // 04       *clever* way to prepend leading 0s
-        return `${year}_${month}_${day}`; 
-    }
-
-    public isCacheCurrent(): boolean {
+    /**
+     * Quick check to see if there are any changes.
+     * * Used to skip processing if nothing in the cache is missing or has expired
+     */
+    public isCacheCurrent(theMoment: moment.Moment): boolean {
         // Get date 2 days ago through 4 days from now.  7 Days total
-        for (let dayIndex = -2; dayIndex <= 4; dayIndex++) {
-            const checkDate = new Date();
-            checkDate.setDate(checkDate.getDate() + dayIndex);
-            const key = this.getKeyForDate(checkDate);
+        for (let dayIndex = -2; dayIndex <= 4; dayIndex++) { 
+            const aMoment = theMoment.clone();          
+            const key = aMoment.add(dayIndex, "d").format("YYYY_MM_DD");
 
             // cache will return null for a missing or expired item
             if (this.cache.get(key) === null) {
@@ -88,59 +136,99 @@ export class BaseballData {
         return true;
     }
 
-    // Get the games for a given data
-    // If its in the cache return the object
-    // If its not, fetch the data, add to cache and return it.
-    //
-    // There could be more than one game for the same team if there is a double header
-    public async getMlbDataForDate(gameDate: Date): Promise<BaseballJson | null> {
-        const key   = this.getKeyForDate(gameDate); 
+    /**
+     * Get all the games for a given data
+     * * If there are no games, the array returned will be empty
+     * * There could be more than one game for the same team if there is a double header
+     * @param gameDayMoment Moment object
+     * @returns an array of games for a given date [{"gamePk": 123456, ...}, ... ]
+     */
+    private async getGameListForDate(gameDayMoment: moment.Moment): Promise<GameList> {
+        const key   = gameDayMoment.format("YYYY_MM_DD");
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let baseballJson: BaseballJson | null = this.cache.get(key) as BaseballJson;
+        const cachedGameList: GameList | null = this.cache.get(key) as GameList;
 
-        if (baseballJson !== null) {
-            //this.logger.log(`BaseballData: Cache hit  for ${theTeam} on ${key}`);
-            return baseballJson;
-        } else {
-            const year  = `${gameDate.getFullYear()}`;                     // 2019
-            const month = ("00" + (gameDate.getMonth() + 1)).slice(-2);    // 10       getMonth() returns 0-11
-            const day   = ("00" + gameDate.getDate()).slice(-2);           // 04       *clever* way to prepend leading 0s
-            const url = `https://gd2.mlb.com/components/game/mlb/year_${year}/month_${month}/day_${day}/miniscoreboard.json`;
+        if (cachedGameList !== null) {
+            return cachedGameList;
+        }
 
-            this.logger.info(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
-            this.logger.info("BaseballData: URL: " + url);
+        let feedList: FeedList = [];
+        const gameList: GameList = [];
+        const teamInfo = new TeamInfo();
+        
+        const datePart = gameDayMoment.format("MM/DD/YYYY");
+        const url = `http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=${datePart}`;
 
-            try {
-                const response: AxiosResponse = await axios.get(url, {headers: {"Content-Encoding": "gzip"}});
-                baseballJson = response.data as BaseballJson;
+        this.logger.verbose(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
+        this.logger.verbose("BaseballData: URL: " + url);
 
-                // if successful we get:
-                // {
-                //     ...
-                //     "data": {
-                //         "games": {
-                //             "game": [...]  <== During the offseason, with no games, this is not present
-                //         },
-                //         "date": "20210111"
-                //     }
-                // }
-                // 
-                // If the data is bogus (invalid date) we get: { "message": "Internal server error" } - No data 
-                // A completely invalid URL will return a 5xx and be caught below
+        const options: AxiosRequestConfig = {
+            responseType: "json",
+            headers: {                        
+                "Content-Encoding": "gzip"
+            },
+            timeout: 20000
+        };
+        
+        const startTime = new Date();
+        await axios.get(url, options)
+            .then((res: AxiosResponse) => {
+                if (typeof process.env.TRACK_GET_TIMES !== "undefined" ) {
+                    this.logger.info(`BaseballData: GET TIME: ${new Date().getTime() - startTime.getTime()}ms`);
+                }
 
-                let anyActive = false;
-                let anyStillToPlay = false;
-                let noGames = false;
+                if (typeof res?.data?.dates?.[0]?.games !== "undefined" ) {
+                    feedList = res.data.dates[0].games as FeedList;
+                }
+                
+            })
+            .catch((error) => {
+                this.logger.warn(`BaseballData: URL: ${url} No data: ${error})`);
+            });
+        
+        try {
+            let anyActive = false;
+            let anyStillToPlay = false;
+            let noGames = false;
 
-                // game is actualy an array of objects
-                if (baseballJson !== null && 
-                    baseballJson !== undefined &&
-                    baseballJson.data !== undefined && 
-                    baseballJson.data.games !== undefined && 
-                    Array.isArray(baseballJson.data.games.game)) {
-                    for (const game of baseballJson.data.games.game) {
-                        switch (game.status) {
+            // game is actualy an array of objects
+            if (Array.isArray(feedList) && feedList.length !== 0) {
+                for (const feedGame of feedList) {
+                    if (typeof feedGame?.teams?.home?.team?.id == "undefined" ||
+                        typeof feedGame?.teams?.away?.team?.id == "undefined"
+                    ) {
+                        this.logger.warn("BaseballData: Malformed feedGame. Skipping");
+                        this.logger.warn(`BaseballData: URL was: ${url}`);
+                        this.logger.verbose(`feedGame: ${JSON.stringify(feedGame, null, 4)}`);
+                        continue;
+                    }
+
+                    const homeTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.home.team.id);
+                    const awayTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.away.team.id);
+
+                    const gameMoment = moment(feedGame.gameDate);                    
+                    const homeTime = homeTeamInfo.timeZone ? gameMoment.clone().tz(homeTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"                  
+                    const awayTime = awayTeamInfo.timeZone ? gameMoment.clone().tz(awayTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"
+                    
+                    const gameDetail: GameDetails = {
+                        status: feedGame.status?.abstractGameState ?? "",               // Final, ...
+                        series: (feedGame.gameType === "R" ? "Regular Season" : ""),    // Regular Season
+                        game_type: feedGame.gameType ?? "",                             // R
+                        day: gameMoment.format("ddd"),                                  // Tue
+                        date: gameMoment.format("MMM D"),                               // May 5
+                        home_time: homeTime,                                            // 7:05 PM
+                        away_time: awayTime,                                            // 10:05 PM
+                        home_team_runs: feedGame.teams.home.score !== undefined ? feedGame.teams.home.score.toString() : "",
+                        away_team_runs: feedGame.teams.away.score !== undefined ? feedGame.teams.away.score.toString() : "",
+                        home_name_abbrev: teamInfo.lookupTeam(feedGame.teams.home.team.id)?.abbreviation ?? "",
+                        away_name_abbrev: teamInfo.lookupTeam(feedGame.teams.away.team.id)?.abbreviation ?? "", 
+                        inning: "?",
+                        top_inning: "N"
+                    };
+
+                    if (feedGame.status?.abstractGameState !== undefined) {
+                        switch (feedGame.status.abstractGameState) {
                         case "In Progress":
                             anyActive = true;
                             break;
@@ -157,117 +245,101 @@ export class BaseballData {
                         case "Postponed":
                             break;
                         default:
-                            this.logger.warn(`Found new game status: ${game.status}`);
+                            this.logger.warn(`BaseballData: Found new game status: ${feedGame.status}`);
                             anyStillToPlay = true;
                             break;
                         }
                     }
-                } else {
-                    this.logger.info("BaseballData: No games");
-                    noGames = true;
+
+                    gameList.push(gameDetail);
                 }
-                    
-                const midnightThisMorning: Date = new Date();
-                midnightThisMorning.setHours(0,0,0,0);
-                const midnightTonight: Date = new Date();
-                midnightTonight.setHours(23,59,59,0);
-                     
-                const nowMs: number = new Date().getTime();
-                let expirationMs: number; 
-
-                // If any games for this day are still active, keep checking every 5 minutes
-                // If the games were yesterday (and finished), they never expire
-                // if the games are tomorrow, check early tomorrow
-                // If the games are still to play (Warmup, ...) check in 30 minutes
-                // Everything else we will check in 6 hours.
-
-                if (anyActive) {
-                    expirationMs = nowMs + 15 * 60 * 1000; // 5 minutes
-                } else if (gameDate < midnightThisMorning  || noGames) {
-                    expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // previous day so it may be useful for up to 7 days
-                } else if (gameDate > midnightTonight) {
-                    expirationMs = new Date(midnightTonight).getTime() + 5 * 60 * 1000; // 5 minutes after midnight
-                } else if (anyStillToPlay) {
-                    expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
-                } else {
-                    expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
-                }
-
-                this.cache.set(key, baseballJson, expirationMs);
-            } catch (e) {
-                this.logger.error("Read baseball sched data: " + e);
-                baseballJson == null;
+            } else {
+                this.logger.verbose("BaseballData: No games");
+                noGames = true;
             }
+
+            const midnightThisMorning = moment().clone().hour(0).minute(0).second(0).millisecond(0);
+            const midnightTonight     = moment().clone().hour(23).minutes(59).second(59).millisecond(999);
+                    
+            const nowMs: number = moment().valueOf();
+            let expirationMs: number; 
+
+            // If any games for this day are still active, keep checking every 5 minutes
+            // If the games were yesterday (and finished), keep for 7 days
+            // if the games are tomorrow, check early tomorrow
+            // If the games are still to play (Warmup, ...) check in 30 minutes
+            // Everything else we will check in 6 hours.
+
+            if (anyActive) {
+                expirationMs = nowMs + 15 * 60 * 1000; // 5 minutes
+            } else if (gameDayMoment < midnightThisMorning  || noGames) {
+                expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // previous day so it may be useful for up to 7 days
+            } else if (gameDayMoment > midnightTonight) {
+                expirationMs = midnightTonight.valueOf() + 5 * 60 * 1000; // 5 minutes after midnight
+            } else if (anyStillToPlay) {
+                expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
+            } else {
+                expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
+            }
+
+            this.logger.verbose(`BaseballData: Updateing cache: ${key}, Expiration: ${moment(expirationMs).format("dddd, MMMM Do YYYY, h:mm:ss a")}`);
+            this.cache.set(key, gameList, expirationMs);
+        } catch (e: any) {
+            this.logger.error("BaseballData: Read baseball sched data: " + e);
+            this.logger.error(`Stack: ${e.stack}`);
+            gameList == null;
         }
             
-        return baseballJson;
+        return gameList;
     }
 
-    // This returns a list of 7 day days worth of games for a team
-    // Each day will have at least one "game", even if the status is "Off"
-    // A day may have 2 games for a double header.
-    public async getTeamGames(teamAbrev: string): Promise<Array<GameDay> | null> {
-        const dayList: Array<GameDay> = [];
+    /**
+     * Gets game data for the the 2 previous days game(s), the current days game(s) and 4 future days game(s) 
+     * * Each day will have at least one "game", even if the status is "OFF"
+     * @param teamAbrev "BOS", "LAD", ...
+     * @returns Array of 7 GameDay elements.  {team, day, date, games[]}
+     */
+    public async getTeamGames(teamAbrev: string, theMoment: moment.Moment): Promise<Array<GameDay> | null> {
+        const gameDayList: Array<GameDay> = [];
         // Get date 2 days ago through 4 days from now.  7 Days total
         for (let dayIndex = -2; dayIndex <= 4; dayIndex++) {
-            const requestDate = new Date();
-            requestDate.setDate(requestDate.getDate() + dayIndex);
+            const requestMoment = theMoment.clone();
+            requestMoment.add(dayIndex, "d");
 
-            const baseballJson: BaseballJson | null = await this.getMlbDataForDate(requestDate);
-            if (baseballJson === null) {
-                return null;
-            }
-
-            const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-            const dayStr: string = weekdays[requestDate.getDay()];
-            const dateStr: string = months[requestDate.getMonth()] + " " + requestDate.getDate();
+            const gameList: GameList = await this.getGameListForDate(requestMoment);
             
             // gameDay will have 1 or 2 entries.  If there was no game we add an "Off" game
-            const gameDay: GameDay = {team: teamAbrev, games: []}; 
+            const gameDay: GameDay = {
+                team: teamAbrev, 
+                year: requestMoment.format("YYYY"),
+                month: requestMoment.format("MM"),
+                day: requestMoment.format("DD"),
+                games: []
+            }; 
+
             try {
-                if (baseballJson !== null && 
-                    baseballJson.data != undefined && 
-                    baseballJson.data.games !== undefined && 
-                    Array.isArray(baseballJson.data.games.game)) {
-                    let game: Game = { status: "OFF", day: dayStr, date: dateStr };
-                    // Loop through all the games for the day and add games for this team to the dayList
-                    for (game of baseballJson.data.games.game) {
-                        
+                if (Array.isArray(gameList)) {
+                    // Loop through all the games for the day and add games for this team to the gameDay games array
+                    for (const game of gameList) {
                         if (game.away_name_abbrev === teamAbrev || game.home_name_abbrev === teamAbrev) {
-                            //this.logger.log("BaseballData: Game Day: " + theTeam + " " + JSON.stringify(game.id, null, 4));
-    
-                            // the day and date for later
-                            game.day = dayStr;
-                            game.date = dateStr;
-    
-                            // fix up game time (missing in spring training games)
-                            if (typeof game.away_time === "undefined") {
-                                game.away_time = game.event_time;
-                                game.home_time = game.event_time;
-                            }
-    
-                            // fix up runs (missing in spring training games)
-                            if (typeof game.home_team_runs === "undefined") {
-                                game.home_team_runs = game.home_score;
-                                game.away_team_runs = game.away_score;
-                            }      
                             gameDay.games.push(game);                        
                         }
-                        
                     }
                 }
-            } catch (e) {
+            } catch (e: any) {
                 this.logger.error("BaseballData: Error processing, baseballJson from site.  Did the result format change?");
+                this.logger.error(`Stack: ${e.stack}`);
             }
-            // this.logger.info("BaseballImage: [" + teamAbbrev + " (" + teamLookup + ")" + "] Requesting game for date: " + requestDate.toDateString());
             
             if (gameDay.games.length === 0) {
-                gameDay.games.push({ status: "OFF", day: dayStr, date: dateStr });
+                gameDay.games.push({ 
+                    status: "OFF", 
+                    day: requestMoment.format("ddd"), 
+                    date: requestMoment.format("MMM D") 
+                });
             }
-            dayList.push(gameDay);
+            gameDayList.push(gameDay);
         }
-        return dayList;
+        return gameDayList;
     }
 }

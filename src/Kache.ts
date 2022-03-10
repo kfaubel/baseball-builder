@@ -24,17 +24,31 @@ export class Kache implements KacheInterface {
     private cachePath: string;
 
     private logger: LoggerInterface;
-
-    constructor(logger: LoggerInterface, cacheName: string) {
+    private detailedLogging: boolean;
+    
+    /**
+     * Construct the cache instance
+     * @param logger Logger instance
+     * @param cacheName Name of the cache (filename)
+     * @param detailedLogging Report as verbose, details of the cache workings.
+     */
+    constructor(logger: LoggerInterface, cacheName: string, newCache = false, detailedLogging = false) {
         this.logger = logger;
         this.cacheName = cacheName;
         this.cachePath = path.resolve(__dirname, "..", this.cacheName);
+
+        if (newCache) {
+            this.logger.info("Cache: removing any previous cache.");
+            fs.unlinkSync(this.cachePath);
+        }
+
         this.cacheStorage = {};
+        this.detailedLogging = detailedLogging;
 
         try {
             const cacheData: Buffer | null | undefined = fs.readFileSync(this.cachePath);
             if (cacheData !== undefined && cacheData !== null) {
-                //this.logger.verbose(`Cache: Using: ${this.cacheName}`); // ${JSON.stringify(this.cacheStorage, null, 4)}`);
+                (this.detailedLogging) && this.logger.verbose(`Cache: Using: ${this.cacheName}`); // ${JSON.stringify(this.cacheStorage, null, 4)}`);
   
                 this.cacheStorage = JSON.parse(cacheData.toString());
 
@@ -42,17 +56,17 @@ export class Kache implements KacheInterface {
                     const cacheItem = this.cacheStorage[key];
         
                     if (cacheItem.expiration < new Date().getTime()) {
-                        //this.logger.info(`Cache load: '${key}' has expired, deleting`);
+                        (this.detailedLogging) && this.logger.verbose(`Cache load: '${key}' has expired, deleting`);
                         delete this.cacheStorage[key];
                     } else {
-                        //this.logger.verbose(`Cache load: '${key}' still good.`);
+                        (this.detailedLogging) && this.logger.verbose(`Cache load: '${key}' still good.`);
                     }
                 }
             } else {
-                //this.logger.verbose(`Cache: Creating: ${this.cacheName}`);
+                (this.detailedLogging) && this.logger.verbose(`Cache: Creating: ${this.cacheName}`);
             }
         } catch (e) {
-            //this.logger.verbose(`Cache: Creating: ${this.cacheName}`);
+            (this.detailedLogging) && this.logger.verbose(`Cache: Creating: ${this.cacheName}`);
         }
     }
 
@@ -71,15 +85,15 @@ export class Kache implements KacheInterface {
         if (cacheItem !== undefined) {
             if (cacheItem.expiration > new Date().getTime()) {
                 // object is current
-                //this.logger.verbose(`Cache: Key: '${key}' - cache hit`);
+                (this.detailedLogging) && this.logger.verbose(`Cache: Key: '${key}' - cache hit`);
                 return cacheItem.item;
             } else {
                 // object expired
-                //this.logger.verbose(`Cache: Key: '${key}' - cache expired`);
+                (this.detailedLogging) && this.logger.verbose(`Cache: Key: '${key}' - cache expired`);
             }
         } else {
             // object not in cache
-            //this.logger.verbose(`Cache: Key: '${key}' - cache miss`);
+            (this.detailedLogging) && this.logger.verbose(`Cache: Key: '${key}' - cache miss`);
         }
 
         return null;
@@ -87,7 +101,7 @@ export class Kache implements KacheInterface {
 
     public set(key: string, newItem: unknown, expirationTime: number): void {
         const comment: string = new Date(expirationTime).toString();
-        //this.logger.verbose(`Cache set: Key: ${key}, exp: ${comment}`);
+        (this.detailedLogging) && this.logger.verbose(`Cache set: Key: ${key}, exp: ${comment}`);
 
         const cacheItem = {expiration: expirationTime, comment: comment, item: newItem};
         this.cacheStorage[key as keyof CacheStorage] =  cacheItem;

@@ -5,7 +5,7 @@ import path from "path";
 import * as pure from "pureimage";
 import { KacheInterface  } from "./Kache.js";
 import { LoggerInterface } from "./Logger.js";
-import { GameDay, Game } from "./BaseballData";
+import { GameDay, GameDetails } from "./BaseballData";
 import { Team, TeamInfo } from "./TeamInfo";
 
 export interface ImageResult {
@@ -51,18 +51,13 @@ export class BaseballImage {
         }
     }
 
+    /**
+     * Generate an image with the schedule, scores, times, etc. for a given team
+     * @param teamName "BOS"
+     * @param dayList Array of 7 days of games (2 back, present and 4 forward) 
+     * @returns 
+     */
     public async getImage(teamName: string, dayList: Array<GameDay>): Promise<ImageResult | null> {
-        // The teamTable has some extra entries that point to a different abbreviation to lookup
-        // let teamTable: TeamTable;
-        // const teamTablePath: string = path.resolve("teams.json");
-        // try {
-        //     const sampleBuffer = fs.readFileSync(teamTablePath);
-        //     teamTable = JSON.parse(sampleBuffer.toString());
-        // } catch (e) {
-        //     this.logger.error(`Could not read Teams Table: ${teamTablePath} ${e.text}`);
-        //     return null;
-        // }
-
         const teamInfo: TeamInfo = new TeamInfo();
         const team: Team | null = teamInfo.lookupTeam(teamName);
         if (team === null) {
@@ -74,7 +69,7 @@ export class BaseballImage {
         // * Double headers cause us to show different games than 1/day
         // * dayList  - is the array of 7 days we got above
         // * gameList - is the array of games we will display in the 7 slots
-        const gameList: Game[] = [];
+        const gameList: GameDetails[] = [];
         const TODAY = 2; // Index in the array of today's game
 
         // Slot 0 - if Yesterday was a double header, its game 1, else its the last game from the day before yesterday
@@ -208,7 +203,7 @@ export class BaseballImage {
         for (let gameIndex = 0; gameIndex <= 6; gameIndex++) {
             const yOffset: number = firstGameYOffset + gameIndex * gameYOffset;
 
-            const game: Game = gameList[gameIndex];
+            const game: GameDetails = gameList[gameIndex];
 
             const gameDay = game.day;
             const gameDate = game.date;
