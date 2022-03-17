@@ -38,8 +38,10 @@ export class Kache implements KacheInterface {
         this.cachePath = path.resolve(__dirname, "..", this.cacheName);
 
         if (newCache) {
-            this.logger.info("Cache: removing any previous cache.");
-            fs.unlinkSync(this.cachePath);
+            this.logger.info(`Cache: removing any previous cache.`);
+            try {
+                fs.unlinkSync(this.cachePath);
+            } catch (e) {}
         }
 
         this.cacheStorage = {};
