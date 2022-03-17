@@ -1,0 +1,304 @@
+{
+  "copyright" : "Copyright 2022 MLB Advanced Media, L.P.  Use of any content on this page acknowledges agreement to the terms posted here http://gdx.mlb.com/components/copyright.txt",
+  "totalItems" : 4,
+  "totalEvents" : 0,
+  "totalGames" : 4,
+  "totalGamesInProgress" : 4,
+  "dates" : [ {
+    "date" : "2022-03-17",
+    "totalItems" : 4,
+    "totalEvents" : 0,
+    "totalGames" : 4,
+    "totalGamesInProgress" : 4,
+    "games" : [ {
+      "gamePk" : 707019,
+      "link" : "/api/v1.1/game/707019/feed/live",
+      "gameType" : "S",
+      "season" : "2022",
+      "gameDate" : "2022-03-17T17:05:00Z",
+      "officialDate" : "2022-03-17",
+      "status" : {
+        "abstractGameState" : "Live",
+        "codedGameState" : "I",
+        "detailedState" : "In Progress",
+        "statusCode" : "I",
+        "startTimeTBD" : false,
+        "abstractGameCode" : "L"
+      },
+      "teams" : {
+        "away" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 1,
+          "team" : {
+            "id" : 142,
+            "name" : "Minnesota Twins",
+            "link" : "/api/v1/teams/142"
+          },
+          "splitSquad" : false,
+          "seriesNumber" : 1
+        },
+        "home" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 12,
+          "team" : {
+            "id" : 111,
+            "name" : "Boston Red Sox",
+            "link" : "/api/v1/teams/111"
+          },
+          "splitSquad" : false,
+          "seriesNumber" : 1
+        }
+      },
+      "venue" : {
+        "id" : 4309,
+        "name" : "JetBlue Park",
+        "link" : "/api/v1/venues/4309"
+      },
+      "content" : {
+        "link" : "/api/v1/game/707019/content"
+      },
+      "gameNumber" : 1,
+      "publicFacing" : true,
+      "doubleHeader" : "N",
+      "gamedayType" : "N",
+      "tiebreaker" : "N",
+      "calendarEventID" : "14-707019-2022-03-17",
+      "seasonDisplay" : "2022",
+      "dayNight" : "day",
+      "scheduledInnings" : 9,
+      "reverseHomeAwayStatus" : false,
+      "inningBreakLength" : 120,
+      "gamesInSeries" : 1,
+      "seriesGameNumber" : 1,
+      "seriesDescription" : "Spring Training",
+      "recordSource" : "S",
+      "ifNecessary" : "N",
+      "ifNecessaryDescription" : "Normal Game"
+    }, {
+      "gamePk" : 707078,
+      "link" : "/api/v1.1/game/707078/feed/live",
+      "gameType" : "S",
+      "season" : "2022",
+      "gameDate" : "2022-03-17T20:05:00Z",
+      "officialDate" : "2022-03-17",
+      "status" : {
+        "abstractGameState" : "Live",
+        "codedGameState" : "I",
+        "detailedState" : "In Progress",
+        "statusCode" : "I",
+        "startTimeTBD" : false,
+        "abstractGameCode" : "L"
+      },
+      "teams" : {
+        "away" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 0,
+          "team" : {
+            "id" : 145,
+            "name" : "Chicago White Sox",
+            "link" : "/api/v1/teams/145"
+          },
+          "splitSquad" : true,
+          "seriesNumber" : 1
+        },
+        "home" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 0,
+          "team" : {
+            "id" : 112,
+            "name" : "Chicago Cubs",
+            "link" : "/api/v1/teams/112"
+          },
+          "splitSquad" : true,
+          "seriesNumber" : 1
+        }
+      },
+      "venue" : {
+        "id" : 4629,
+        "name" : "Sloan Park",
+        "link" : "/api/v1/venues/4629"
+      },
+      "content" : {
+        "link" : "/api/v1/game/707078/content"
+      },
+      "gameNumber" : 1,
+      "publicFacing" : true,
+      "doubleHeader" : "N",
+      "gamedayType" : "N",
+      "tiebreaker" : "N",
+      "calendarEventID" : "14-707078-2022-03-17",
+      "seasonDisplay" : "2022",
+      "dayNight" : "day",
+      "scheduledInnings" : 9,
+      "reverseHomeAwayStatus" : false,
+      "inningBreakLength" : 120,
+      "gamesInSeries" : 2,
+      "seriesGameNumber" : 1,
+      "seriesDescription" : "Spring Training",
+      "recordSource" : "S",
+      "ifNecessary" : "N",
+      "ifNecessaryDescription" : "Normal Game"
+    }, {
+      "gamePk" : 707077,
+      "link" : "/api/v1.1/game/707077/feed/live",
+      "gameType" : "S",
+      "season" : "2022",
+      "gameDate" : "2022-03-17T20:05:00Z",
+      "officialDate" : "2022-03-17",
+      "status" : {
+        "abstractGameState" : "Live",
+        "codedGameState" : "P",
+        "detailedState" : "Warmup",
+        "statusCode" : "PW",
+        "startTimeTBD" : false,
+        "abstractGameCode" : "L"
+      },
+      "teams" : {
+        "away" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 0,
+          "team" : {
+            "id" : 112,
+            "name" : "Chicago Cubs",
+            "link" : "/api/v1/teams/112"
+          },
+          "splitSquad" : true,
+          "seriesNumber" : 1
+        },
+        "home" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 0,
+          "team" : {
+            "id" : 145,
+            "name" : "Chicago White Sox",
+            "link" : "/api/v1/teams/145"
+          },
+          "splitSquad" : true,
+          "seriesNumber" : 1
+        }
+      },
+      "venue" : {
+        "id" : 3809,
+        "name" : "Camelback Ranch",
+        "link" : "/api/v1/venues/3809"
+      },
+      "content" : {
+        "link" : "/api/v1/game/707077/content"
+      },
+      "gameNumber" : 1,
+      "publicFacing" : true,
+      "doubleHeader" : "N",
+      "gamedayType" : "N",
+      "tiebreaker" : "N",
+      "calendarEventID" : "14-707077-2022-03-17",
+      "seasonDisplay" : "2022",
+      "dayNight" : "day",
+      "scheduledInnings" : 9,
+      "reverseHomeAwayStatus" : false,
+      "inningBreakLength" : 120,
+      "gamesInSeries" : 2,
+      "seriesGameNumber" : 2,
+      "seriesDescription" : "Spring Training",
+      "recordSource" : "S",
+      "ifNecessary" : "N",
+      "ifNecessaryDescription" : "Normal Game"
+    }, {
+      "gamePk" : 706975,
+      "link" : "/api/v1.1/game/706975/feed/live",
+      "gameType" : "S",
+      "season" : "2022",
+      "gameDate" : "2022-03-17T20:10:00Z",
+      "officialDate" : "2022-03-17",
+      "status" : {
+        "abstractGameState" : "Live",
+        "codedGameState" : "P",
+        "detailedState" : "Warmup",
+        "statusCode" : "PW",
+        "startTimeTBD" : false,
+        "abstractGameCode" : "L"
+      },
+      "teams" : {
+        "away" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 0,
+          "team" : {
+            "id" : 109,
+            "name" : "Arizona Diamondbacks",
+            "link" : "/api/v1/teams/109"
+          },
+          "splitSquad" : false,
+          "seriesNumber" : 20
+        },
+        "home" : {
+          "leagueRecord" : {
+            "wins" : 0,
+            "losses" : 0,
+            "pct" : ".000"
+          },
+          "score" : 0,
+          "team" : {
+            "id" : 115,
+            "name" : "Colorado Rockies",
+            "link" : "/api/v1/teams/115"
+          },
+          "splitSquad" : false,
+          "seriesNumber" : 20
+        }
+      },
+      "venue" : {
+        "id" : 4249,
+        "name" : "Salt River Fields at Talking Stick",
+        "link" : "/api/v1/venues/4249"
+      },
+      "content" : {
+        "link" : "/api/v1/game/706975/content"
+      },
+      "gameNumber" : 1,
+      "publicFacing" : true,
+      "doubleHeader" : "N",
+      "gamedayType" : "E",
+      "tiebreaker" : "N",
+      "calendarEventID" : "14-706975-2022-03-17",
+      "seasonDisplay" : "2022",
+      "dayNight" : "day",
+      "scheduledInnings" : 9,
+      "reverseHomeAwayStatus" : false,
+      "inningBreakLength" : 120,
+      "gamesInSeries" : 2,
+      "seriesGameNumber" : 1,
+      "seriesDescription" : "Spring Training",
+      "recordSource" : "S",
+      "ifNecessary" : "N",
+      "ifNecessaryDescription" : "Normal Game"
+    } ],
+    "events" : [ ]
+  } ]
+}

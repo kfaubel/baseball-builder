@@ -25,7 +25,7 @@ import moment from "moment-timezone";  // https://momentjs.com/timezone/docs/ & 
  * * This is externally facing
  */
 export interface GameDetails {
-    status: string;             // Scheduled, Warmup, Pre-game, Pre-Game, Preview, Delayed, Final, Game Over, Postponed
+    status: string;             // Scheduled, Warmup, Pre-game, Pre-Game, Preview, "In Progress"Delayed, Final, Game Over, Postponed
     series?: string;            // "Regular Season"
     game_type?: string          // "R"
     day: string;                // Tue
@@ -74,7 +74,8 @@ interface FeedGame {
     gameDate: string;                 // ISO date-time
     gameType: string;                 // "R" - Regular Season
     status?: {
-        abstractGameState: string;    // "Final", ...
+        abstractGameState: string;    // "Final", "Live"...
+        detailedState: string;        // "In Progress"
         codeGameState: string;        // "F"
         stausCode: string;            // 'F', ...
     }
@@ -183,7 +184,7 @@ export class BaseballData {
                 }
                 
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 this.logger.warn(`BaseballData: URL: ${url} No data: ${error})`);
             });
         
@@ -228,7 +229,7 @@ export class BaseballData {
                     };
 
                     if (feedGame.status?.abstractGameState !== undefined) {
-                        switch (feedGame.status.abstractGameState) {
+                        switch (feedGame.status.detailedState) {
                         case "In Progress":
                             anyActive = true;
                             break;
@@ -245,7 +246,7 @@ export class BaseballData {
                         case "Postponed":
                             break;
                         default:
-                            this.logger.warn(`BaseballData: Found new game status: ${feedGame.status}`);
+                            this.logger.warn(`BaseballData: Found new game status: ${feedGame.status.detailedState}`);
                             anyStillToPlay = true;
                             break;
                         }

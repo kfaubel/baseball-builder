@@ -32,8 +32,6 @@ async function run() {
         return false;
     } 
 
-    console.log(teamList);
-
     const logLevel = options.loglevel.toLowerCase();
 
     const logger = new Logger("baseball-schedule-builder", logLevel);
