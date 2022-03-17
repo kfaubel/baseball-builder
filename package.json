@@ -1,6 +1,6 @@
 {
   "name": "baseball-schedule-builder",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Module to build MLB schedule images for teams",
   "main": "index.js",
   "types": "index.d.ts",
