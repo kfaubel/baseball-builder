@@ -36,7 +36,7 @@ async function run() {
 
     const logLevel = options.loglevel.toLowerCase();
 
-    const logger = new Logger("baseball-builder", logLevel);
+    const logger = new Logger("baseball-schedule-builder", logLevel);
 
     const cache: Kache = new Kache(logger, "baseball-sched-cache.json", options.newcache, (logLevel == "verbose"));
 
