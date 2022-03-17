@@ -1,5 +1,5 @@
 {
-  "name": "baseball-builder",
+  "name": "baseball-schedule-builder",
   "version": "1.1.0",
   "description": "Module to build MLB schedule images for teams",
   "main": "index.js",
@@ -16,14 +16,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kfaubel/baseball-builder.git"
+    "url": "git+https://github.com/kfaubel/baseball-schedule-builder.git"
   },
   "author": "Ken Faubel",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kfaubel/baseball-builder/issues"
+    "url": "https://github.com/kfaubel/baseball-schedule-builder/issues"
   },
-  "homepage": "https://github.com/kfaubel/baseball-builder#readme",
+  "homepage": "https://github.com/kfaubel/baseball-schedule-builder#readme",
   "dependencies": {
     "axios": "^0.25.0",
     "commander": "^9.0.0",
