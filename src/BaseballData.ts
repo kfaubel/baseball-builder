@@ -68,6 +68,7 @@ export type GameList = GameDetails[];
 // Final                  Final              F                 F            F
 // Final                  Completed Early    F                 FO           F                  Tie 
 // Final                  Completed Early    F                 OO           F                  Tie
+// Final                  Game Over          O                 O            F                  
 // Final                  Final              F                 FT           F                  Tie
 // Live                   Pre-Game           P                 P            P
 // Live                   Warmup             P                 PW           L
@@ -75,9 +76,9 @@ export type GameList = GameDetails[];
 // Preview                Scheduled          S                 S            P                  Future game
 
 const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game"];
-const knownDetailedStates = ["Final", "Completed Early", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
+const knownDetailedStates = ["Final", "Completed Early", "Game Over", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
 const knownCodedGameState = ["F", "P", "I", "S", "O"];
-const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O"];
 const knownAbstractGameCode = ["F", "P", "L"];
 
 /**

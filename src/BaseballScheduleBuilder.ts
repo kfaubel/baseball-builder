@@ -13,7 +13,7 @@ import moment from "moment-timezone";
 //     teamList: Array<string>;
 // }
 
-export class BaseballBuilder {
+export class BaseballScheduleBuilder {
     private logger: LoggerInterface;
     private cache: KacheInterface;
     private writer: ImageWriterInterface;

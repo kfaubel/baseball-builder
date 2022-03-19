@@ -5,7 +5,7 @@ import { Logger } from "./Logger";
 import { BaseballImage, ImageResult } from "./BaseballImage";
 import { Kache } from "./Kache";
 import { Team, TeamInfo } from "./TeamInfo";
-import { BaseballBuilder } from "./BaseballBuilder";
+import { BaseballScheduleBuilder } from "./BaseballScheduleBuilder";
 import { SimpleImageWriter } from "./SimpleImageWriter";
 import { Command } from "commander";
 
@@ -39,14 +39,14 @@ async function run() {
     const cache: Kache = new Kache(logger, "baseball-sched-cache.json", options.newcache, (logLevel == "verbose"));
 
     const simpleImageWriter: SimpleImageWriter = new SimpleImageWriter(logger, "teams");
-    const baseballBuilder: BaseballBuilder = new BaseballBuilder(logger, cache, simpleImageWriter);
+    const baseballScheduleBuilder: BaseballScheduleBuilder = new BaseballScheduleBuilder(logger, cache, simpleImageWriter);
     
     fs.mkdirSync("./teams/", { recursive: true });
 
     const teamInfo: TeamInfo = new TeamInfo();
     //const teamList = teamInfo.getTeamsList(); 
     //const teamList = ["BOS", "NYM", "CHC", "FENWAY"];
-    const success: boolean = await baseballBuilder.CreateImages({teamList: teamList});
+    const success: boolean = await baseballScheduleBuilder.CreateImages({teamList: teamList});
 
     return success ? 0 : 1;
 }
