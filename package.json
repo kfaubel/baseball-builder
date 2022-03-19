@@ -1,13 +1,13 @@
 {
   "name": "baseball-schedule-builder",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Module to build MLB schedule images for teams",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "shx rm -rf build",
-    "test":  "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL",
+    "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL",
     "start": "npm run build && node app.js --newcache --loglevel info    BOS LAD MIL",
     "prepare": "npm run build",
     "publish": "echo Published.",
