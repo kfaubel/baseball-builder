@@ -63,6 +63,21 @@ export interface GameDay {
  * * This array contains GameDay elements for 7 days
  */
 export type GameList = GameDetails[]; 
+// Observed status values:
+// abstractGameState      detailedState      codedGameState    stausCode    abstractGameCode   Comment
+// Final                  Final              F                 F            F
+// Final                  Completed Early    F                 FO           F                  Tie? 
+// Final                  Final              F                 FT           F                  Tie
+// Live                   Pre-Game           P                 P            P
+// Live                   Warmup             P                 PW           L
+// Live                   In Propgress       I                 I            L                  Live - active
+// Preview                Scheduled          S                 S            P                  Future game
+
+const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game"];
+const knownDetailedStates = ["Final", "Completed Early", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
+const knownCodedGameState = ["F", "P", "I", "S"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO"];
+const knownAbstractGameCode = ["F", "P", "L"];
 
 /**
  * Format of the feed element for a given game
@@ -75,9 +90,10 @@ interface FeedGame {
     gameType: string;                 // "R" - Regular Season
     status?: {
         abstractGameState: string;    // "Final", "Live"...
-        detailedState: string;        // "In Progress"
-        codeGameState: string;        // "F"
-        stausCode: string;            // 'F', ...
+        detailedState: string;        // "In Progress", "Completed Early"
+        codedGameState: string;       // "F"
+        statusCode: string;           // 'F', 'FO' ...
+        abstractGameCode: string;     // "F"
     }
     teams?: {
         away: {
@@ -162,7 +178,7 @@ export class BaseballData {
         const url = `http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=${datePart}`;
 
         this.logger.verbose(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
-        this.logger.verbose("BaseballData: URL: " + url);
+        this.logger.info("BaseballData: URL: " + url);
 
         const options: AxiosRequestConfig = {
             responseType: "json",
@@ -227,7 +243,19 @@ export class BaseballData {
                         inning: "?",
                         top_inning: "N"
                     };
-
+                    //abstractGameState      detailedState      codedGameState    stausCode    abstractGameCode   Comment
+                    //this.logger.info(`BaseballData: +++ Date: ${feedGame.gameDate} Home: ${gameDetail.home_name_abbrev} Away: Home: ${gameDetail.away_name_abbrev}`);
+                                       
+                    if (!knownAbstractGameStates.includes(feedGame.status?.abstractGameState ?? "undefined") ||
+                        !knownDetailedStates.includes(feedGame.status?.detailedState ?? "undefined") ||
+                        !knownCodedGameState.includes(feedGame.status?.codedGameState ?? "undefined") ||
+                        !knownStatusCodes.includes(feedGame.status?.statusCode ?? "undefined") ||
+                        !knownAbstractGameCode.includes(feedGame.status?.abstractGameCode ?? "undefined")
+                    ) {
+                        const gameStr = `${gameMoment.format("MMM DD")} ${gameDetail.home_name_abbrev} v ${gameDetail.away_name_abbrev}       `;
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} abstractGameState: ${feedGame.status?.abstractGameState}  detailedState: ${feedGame.status?.detailedState} codedGameState: ${feedGame.status?.codedGameState} statusCode: ${feedGame.status?.statusCode} abstractGameCode: ${feedGame.status?.abstractGameCode} `);
+                    }
+                    
                     if (feedGame.status?.abstractGameState !== undefined) {
                         switch (feedGame.status.detailedState) {
                         case "In Progress":
@@ -244,9 +272,11 @@ export class BaseballData {
                         case "Final":
                         case "Game Over":
                         case "Postponed":
+                        case "Completed Early":
                             break;
                         default:
-                            this.logger.warn(`BaseballData: Found new game status: ${feedGame.status.detailedState}`);
+                            this.logger.warn(`BaseballData: Unknown status: Date: ${feedGame.gameDate} Home: ${gameDetail.home_name_abbrev}, ${feedGame.status.detailedState}`);
+                            this.logger.warn(`  ${JSON.stringify(feedGame.status, null, 4)}`);
                             anyStillToPlay = true;
                             break;
                         }
