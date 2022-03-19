@@ -29,14 +29,14 @@ export class BaseballBuilder {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public async CreateImages(params: any): Promise<boolean>{
         let exitStatus = true;
-        const nowMoment = moment(); // now
+
+        const fuzzyMoment = moment();  // This is the date for the OS timezone, not the team.  IsCachedCurrent will handle this.
+        if (this.baseballData.isCacheCurrent(fuzzyMoment)) {
+            this.logger.info(`No cache changes since last time, images are up to date.`);
+            return true;
+        }
 
         try {
-            if (this.baseballData.isCacheCurrent(nowMoment)) {
-                this.logger.info("No cache changes since last time, images are up to date.");
-                return true;
-            }
-
             const baseballImage: BaseballImage = new BaseballImage(this.logger, this.cache);
             const teamInfo: TeamInfo = new TeamInfo();
 
@@ -47,16 +47,23 @@ export class BaseballBuilder {
             
             for (const teamName of params.teamList) {
                 const team: Team | null = teamInfo.lookupTeam(teamName);
+
                 if (team !== null) {
-                    this.logger.verbose(`CreateImages: Starting process for team:  ${teamName} at ${nowMoment.format()}`);
+                    // We need to use the date for the team location.  
+                    // It may be Tuesday 5/24/2022 in UTC or ET but its Monday 5/23/2022 in Seattle
+                    const nowMoment = moment().tz(team.timeZone);
+                    this.logger.verbose(`CreateImages: Starting process for team:  ${teamName} at ${nowMoment.format("MM/DD/YYYY")}`);
+
+                    
 
                     const dayList: Array<GameDay> | null = await this.baseballData.getTeamGames(team.abbreviation, nowMoment);
+
                     if (dayList === null) {
                         exitStatus = false;
                         continue;
                     }
 
-                    this.logger.verbose(`dayList for ${team.abbreviation}\n${JSON.stringify(dayList, null, 4)}`);
+                    //(`dayList for ${team.abbreviation}\n${JSON.stringify(dayList, null, 4)}`);
                 
                     const result: ImageResult | null = await baseballImage.getImage(teamName, dayList);
 

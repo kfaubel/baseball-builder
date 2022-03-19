@@ -217,6 +217,7 @@ export class BaseballImage {
                 let themRuns = "";
                 let homeAway = "";
                 let topStr = "";
+                let inningStr = "";
                 let gameTime = "";
 
                 if (game.home_name_abbrev === team.abbreviation) {
@@ -230,8 +231,11 @@ export class BaseballImage {
                 }
 
                 let gameText = "";
+
+                // With new data feed, game.status can be "Final", "Live", Preview"
                 switch (game.status) {
                 case "In Progress":
+                case "Live":
                     if (game.home_name_abbrev === team.abbreviation) {
                         usRuns = game.home_team_runs as string;
                         themRuns = game.away_team_runs as string;
@@ -240,10 +244,20 @@ export class BaseballImage {
                         themRuns = game.home_team_runs as string;
                     }
 
-                    if (game.top_inning as string === "Y") {
-                        topStr = "Top "; //"\u25B2"; // up arrow
+                    if (game.top_inning === undefined || game.top_inning as string !== "?") {
+                        if (game.top_inning as string === "Y") {
+                            topStr = "Top "; //"\u25B2"; // up arrow
+                        } else {
+                            topStr = "Bot "; //"\u25BC"; // down arrow
+                        }
                     } else {
-                        topStr = "Bot "; //"\u25BC"; // down arrow
+                        topStr = "";
+                    }
+
+                    if (game.inning === undefined || game.inning === "?") {
+                        inningStr = "Live";
+                    } else {
+                        inningStr = game.inning;
                     }
 
                     gameText =
@@ -252,11 +266,12 @@ export class BaseballImage {
                             themRuns +
                             "   " +
                             topStr +
-                            game.inning;
+                            inningStr;
                     break;
                 case "Warmup":
                     gameText = "Warm up";
                     break;
+                case "Preview":
                 case "Pre-game":
                 case "Preview":
                 case "Scheduled":

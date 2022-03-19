@@ -7,8 +7,8 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "shx rm -rf build",
-    "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL",
-    "start": "npm run build && node app.js --newcache BOS LAD MIL",
+    "test":  "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL",
+    "start": "npm run build && node app.js --newcache --loglevel info    BOS LAD MIL",
     "prepare": "npm run build",
     "publish": "echo Published.",
     "install": "echo Installed.",

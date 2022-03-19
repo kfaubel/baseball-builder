@@ -66,7 +66,8 @@ export type GameList = GameDetails[];
 // Observed status values:
 // abstractGameState      detailedState      codedGameState    stausCode    abstractGameCode   Comment
 // Final                  Final              F                 F            F
-// Final                  Completed Early    F                 FO           F                  Tie? 
+// Final                  Completed Early    F                 FO           F                  Tie 
+// Final                  Completed Early    F                 OO           F                  Tie
 // Final                  Final              F                 FT           F                  Tie
 // Live                   Pre-Game           P                 P            P
 // Live                   Warmup             P                 PW           L
@@ -75,8 +76,8 @@ export type GameList = GameDetails[];
 
 const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game"];
 const knownDetailedStates = ["Final", "Completed Early", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
-const knownCodedGameState = ["F", "P", "I", "S"];
-const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO"];
+const knownCodedGameState = ["F", "P", "I", "S", "O"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO"];
 const knownAbstractGameCode = ["F", "P", "L"];
 
 /**
@@ -136,11 +137,15 @@ export class BaseballData {
 
     /**
      * Quick check to see if there are any changes.
-     * * Used to skip processing if nothing in the cache is missing or has expired
+     * We will scan 3 days back and 5 forward to make sure we are covered since
+     * theMoment could actually be a day ahead of behind the date for the team location
+     * 
+     * @param theMoment The time for the OS, not the team we will need to lookup 
+     * @returns 
      */
     public isCacheCurrent(theMoment: moment.Moment): boolean {
         // Get date 2 days ago through 4 days from now.  7 Days total
-        for (let dayIndex = -2; dayIndex <= 4; dayIndex++) { 
+        for (let dayIndex = -3; dayIndex <= 5; dayIndex++) { 
             const aMoment = theMoment.clone();          
             const key = aMoment.add(dayIndex, "d").format("YYYY_MM_DD");
 
@@ -161,6 +166,7 @@ export class BaseballData {
      * @returns an array of games for a given date [{"gamePk": 123456, ...}, ... ]
      */
     private async getGameListForDate(gameDayMoment: moment.Moment): Promise<GameList> {
+        this.logger.verbose(`BaseBallData: getGameListForDate: ${gameDayMoment.format()}`);
         const key   = gameDayMoment.format("YYYY_MM_DD");
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -241,7 +247,7 @@ export class BaseballData {
                         home_name_abbrev: teamInfo.lookupTeam(feedGame.teams.home.team.id)?.abbreviation ?? "",
                         away_name_abbrev: teamInfo.lookupTeam(feedGame.teams.away.team.id)?.abbreviation ?? "", 
                         inning: "?",
-                        top_inning: "N"
+                        top_inning: "?"
                     };
                     //abstractGameState      detailedState      codedGameState    stausCode    abstractGameCode   Comment
                     //this.logger.info(`BaseballData: +++ Date: ${feedGame.gameDate} Home: ${gameDetail.home_name_abbrev} Away: Home: ${gameDetail.away_name_abbrev}`);
@@ -328,6 +334,7 @@ export class BaseballData {
      * Gets game data for the the 2 previous days game(s), the current days game(s) and 4 future days game(s) 
      * * Each day will have at least one "game", even if the status is "OFF"
      * @param teamAbrev "BOS", "LAD", ...
+     * @param theMoment Moment object for the day to get the data.
      * @returns Array of 7 GameDay elements.  {team, day, date, games[]}
      */
     public async getTeamGames(teamAbrev: string, theMoment: moment.Moment): Promise<Array<GameDay> | null> {
