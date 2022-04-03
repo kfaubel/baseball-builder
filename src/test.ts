@@ -4,7 +4,7 @@ import path from "path";
 import { Logger } from "./Logger";
 import { BaseballImage, ImageResult } from "./BaseballImage";
 import { Kache } from "./Kache";
-import { Team, TeamInfo } from "./TeamInfo";
+//import { Team, TeamInfo } from "./TeamInfo";
 import { BaseballScheduleBuilder } from "./BaseballScheduleBuilder";
 import { SimpleImageWriter } from "./SimpleImageWriter";
 import { Command } from "commander";
@@ -26,13 +26,13 @@ async function run() {
 
     const options = program.opts();
 
+    const logLevel = options.loglevel.toLowerCase();
+
     const logLevels = ["error", "warn", "info", "verbose"];
-    if (!logLevels.includes(options.loglevel.toLowerCase())) {
+    if (!logLevels.includes(logLevel)) {
         console.log(`Unknown log level: ${options.loglevel}`);
         return false;
     } 
-
-    const logLevel = options.loglevel.toLowerCase();
 
     const logger = new Logger("baseball-schedule-builder", logLevel);
 
@@ -43,7 +43,7 @@ async function run() {
     
     fs.mkdirSync("./teams/", { recursive: true });
 
-    const teamInfo: TeamInfo = new TeamInfo();
+    //const teamInfo: TeamInfo = new TeamInfo();
     //const teamList = teamInfo.getTeamsList(); 
     //const teamList = ["BOS", "NYM", "CHC", "FENWAY"];
     const success: boolean = await baseballScheduleBuilder.CreateImages({teamList: teamList});

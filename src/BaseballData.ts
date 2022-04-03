@@ -5,7 +5,8 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { LoggerInterface } from "./Logger.js";
 import { KacheInterface } from "./Kache.js";
-import { Team, TeamInfo } from "./TeamInfo";
+//import { Team, TeamInfo } from "./TeamInfo";
+import { mlbinfo } from "mlbinfo";
 import moment from "moment-timezone";  // https://momentjs.com/timezone/docs/ &  https://momentjs.com/docs/
 
 // From a post on reddit.   This may be what's next
@@ -25,7 +26,9 @@ import moment from "moment-timezone";  // https://momentjs.com/timezone/docs/ & 
  * * This is externally facing
  */
 export interface GameDetails {
-    status: string;             // Scheduled, Warmup, Pre-game, Pre-Game, Preview, "In Progress"Delayed, Final, Game Over, Postponed
+    abstractState: string;      // Final. Live, Preview (We add Off if there we no games scheduled)
+    detailedState?: string;     // Scheduled, Warmup, Pre-game, Pre-Game, Preview, "In Progress"Delayed, Final, Game Over, Postponed
+    reason?: string;            // Not always included, value see so far is "Rain"
     series?: string;            // "Regular Season"
     game_type?: string          // "R"
     day: string;                // Tue
@@ -70,15 +73,20 @@ export type GameList = GameDetails[];
 // Final                  Completed Early    F                 OO           F                  Tie
 // Final                  Game Over          O                 O            F                  
 // Final                  Final              F                 FT           F                  Tie
+// Final                  Cancelled          C                 CR           F                  Cancelled
+// Final                  Postponed          
+// Final                  Suspended          
 // Live                   Pre-Game           P                 P            P
 // Live                   Warmup             P                 PW           L
 // Live                   In Propgress       I                 I            L                  Live - active
 // Preview                Scheduled          S                 S            P                  Future game
+// Preview                Delayed Start      P                 PO           P                  
 
-const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game"];
-const knownDetailedStates = ["Final", "Completed Early", "Game Over", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
-const knownCodedGameState = ["F", "P", "I", "S", "O"];
-const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O"];
+const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
+const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", 
+                             "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
+const knownCodedGameState = ["F", "P", "I", "S", "O", "C"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW"];
 const knownAbstractGameCode = ["F", "P", "L"];
 
 /**
@@ -96,6 +104,7 @@ interface FeedGame {
         codedGameState: string;       // "F"
         statusCode: string;           // 'F', 'FO' ...
         abstractGameCode: string;     // "F"
+        reason?: string;              // Not always included, e.g.: "Rain"
     }
     teams?: {
         away: {
@@ -179,7 +188,6 @@ export class BaseballData {
 
         let feedList: FeedList = [];
         const gameList: GameList = [];
-        const teamInfo = new TeamInfo();
         
         const datePart = gameDayMoment.format("MM/DD/YYYY");
         const url = `http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=${datePart}`;
@@ -228,15 +236,19 @@ export class BaseballData {
                         continue;
                     }
 
-                    const homeTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.home.team.id);
-                    const awayTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.away.team.id);
+                    //const homeTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.home.team.id);
+                    //const awayTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.away.team.id);
+                    const homeTeamInfo = mlbinfo.getTeamById(feedGame.teams.home.team.id);
+                    const awayTeamInfo = mlbinfo.getTeamById(feedGame.teams.away.team.id);
 
                     const gameMoment = moment(feedGame.gameDate);                    
-                    const homeTime = homeTeamInfo.timeZone ? gameMoment.clone().tz(homeTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"                  
-                    const awayTime = awayTeamInfo.timeZone ? gameMoment.clone().tz(awayTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"
+                    const homeTime = homeTeamInfo?.timeZone ? gameMoment.clone().tz(homeTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"                  
+                    const awayTime = awayTeamInfo?.timeZone ? gameMoment.clone().tz(awayTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"
                     
                     const gameDetail: GameDetails = {
-                        status: feedGame.status?.abstractGameState ?? "",               // Final, ...
+                        abstractState: feedGame.status?.abstractGameState ?? "",        // Final, ...
+                        detailedState: feedGame.status?.detailedState ?? "",            // Final, ...
+                        reason: feedGame.status?.reason,
                         series: (feedGame.gameType === "R" ? "Regular Season" : ""),    // Regular Season
                         game_type: feedGame.gameType ?? "",                             // R
                         day: gameMoment.format("ddd"),                                  // Tue
@@ -245,48 +257,55 @@ export class BaseballData {
                         away_time: awayTime,                                            // 10:05 PM
                         home_team_runs: feedGame.teams.home.score !== undefined ? feedGame.teams.home.score.toString() : "",
                         away_team_runs: feedGame.teams.away.score !== undefined ? feedGame.teams.away.score.toString() : "",
-                        home_name_abbrev: teamInfo.lookupTeam(feedGame.teams.home.team.id)?.abbreviation ?? "",
-                        away_name_abbrev: teamInfo.lookupTeam(feedGame.teams.away.team.id)?.abbreviation ?? "", 
+                        home_name_abbrev: homeTeamInfo?.abbreviation, //teamInfo.lookupTeam(feedGame.teams.home.team.id)?.abbreviation ?? "",
+                        away_name_abbrev: awayTeamInfo?.abbreviation, //teamInfo.lookupTeam(feedGame.teams.away.team.id)?.abbreviation ?? "", 
                         inning: "?",
                         top_inning: "?"
                     };
-                    //abstractGameState      detailedState      codedGameState    stausCode    abstractGameCode   Comment
-                    //this.logger.info(`BaseballData: +++ Date: ${feedGame.gameDate} Home: ${gameDetail.home_name_abbrev} Away: Home: ${gameDetail.away_name_abbrev}`);
-                                       
-                    if (!knownAbstractGameStates.includes(feedGame.status?.abstractGameState ?? "undefined") ||
-                        !knownDetailedStates.includes(feedGame.status?.detailedState ?? "undefined") ||
-                        !knownCodedGameState.includes(feedGame.status?.codedGameState ?? "undefined") ||
-                        !knownStatusCodes.includes(feedGame.status?.statusCode ?? "undefined") ||
-                        !knownAbstractGameCode.includes(feedGame.status?.abstractGameCode ?? "undefined")
-                    ) {
-                        const gameStr = `${gameMoment.format("MMM DD")} ${gameDetail.home_name_abbrev} v ${gameDetail.away_name_abbrev}       `;
-                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} abstractGameState: ${feedGame.status?.abstractGameState}  detailedState: ${feedGame.status?.detailedState} codedGameState: ${feedGame.status?.codedGameState} statusCode: ${feedGame.status?.statusCode} abstractGameCode: ${feedGame.status?.abstractGameCode} `);
+                      
+                    const gameStr = `${gameMoment.format("MMM DD")} ${gameDetail.home_name_abbrev} v ${gameDetail.away_name_abbrev}       `;
+
+                    if (!knownAbstractGameStates.includes(feedGame.status?.abstractGameState ?? "undefined")) {
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown abstractGameState: ${feedGame.status?.abstractGameState} `);
+                        this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
+                    }
+
+                    if (!knownDetailedStates.includes(feedGame.status?.detailedState ?? "undefined")) {
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown detailedState: ${feedGame.status?.detailedState} `);
+                        this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
+                    }
+
+                    if (!knownCodedGameState.includes(feedGame.status?.codedGameState ?? "undefined")) {
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown codedGameState: ${feedGame.status?.codedGameState} `);
+                        this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
+                    }
+
+                    if (!knownStatusCodes.includes(feedGame.status?.statusCode ?? "undefined")) {
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown statusCode: ${feedGame.status?.statusCode} `);
+                        this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
+                    }
+
+                    if (!knownAbstractGameCode.includes(feedGame.status?.abstractGameCode ?? "undefined")) {
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown abstractGameCode: ${feedGame.status?.abstractGameCode} `);
+                        this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
                     }
                     
-                    if (feedGame.status?.abstractGameState !== undefined) {
-                        switch (feedGame.status.detailedState) {
-                        case "In Progress":
+                    switch (feedGame.status?.abstractGameState) {
+                        //const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
+                        case "Final":
+                            break;
+                        case "Live":
                             anyActive = true;
                             break;
-                        case "Warmup":
-                        case "Pre-game":
-                        case "Pre-Game":
                         case "Preview":
-                        case "Scheduled":
-                        case "Delayed: Rain":
+                        case "Pre-Game":
                             anyStillToPlay = true;
-                            break;
-                        case "Final":
-                        case "Game Over":
-                        case "Postponed":
-                        case "Completed Early":
                             break;
                         default:
-                            this.logger.warn(`BaseballData: Unknown status: Date: ${feedGame.gameDate} Home: ${gameDetail.home_name_abbrev}, ${feedGame.status.detailedState}`);
-                            this.logger.warn(`  ${JSON.stringify(feedGame.status, null, 4)}`);
+                            this.logger.warn(`BaseballData: Unknown abstractGameState: (Date: ${gameDetail.date} Home: ${gameDetail.home_name_abbrev}):  ${feedGame.status?.abstractGameState}, assuming still to play`);
+                            //this.logger.warn(`  ${JSON.stringify(feedGame.status, null, 4)}`);
                             anyStillToPlay = true;
                             break;
-                        }
                     }
 
                     gameList.push(gameDetail);
@@ -365,14 +384,17 @@ export class BaseballData {
                         }
                     }
                 }
-            } catch (e: any) {
-                this.logger.error("BaseballData: Error processing, baseballJson from site.  Did the result format change?");
-                this.logger.error(`Stack: ${e.stack}`);
+            } catch (e) {
+                if (e instanceof Error) {
+                    this.logger.error(`BaseballScheduleData: ${e.stack}`);
+                } else {
+                    this.logger.error(`${e}`);
+                }
             }
             
             if (gameDay.games.length === 0) {
                 gameDay.games.push({ 
-                    status: "OFF", 
+                    abstractState: "Off", 
                     day: requestMoment.format("ddd"), 
                     date: requestMoment.format("MMM D") 
                 });

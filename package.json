@@ -7,8 +7,8 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "shx rm -rf build",
-    "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL",
-    "start": "npm run build && node app.js --newcache --loglevel info    BOS LAD MIL",
+    "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL Fenway",
+    "start": "npm run build && node app.js --newcache --loglevel info   BOS LAD MIL TOR HOU Fenway",
     "prepare": "npm run build",
     "publish": "echo Published.",
     "install": "echo Installed.",
@@ -26,23 +26,24 @@
   "homepage": "https://github.com/kfaubel/baseball-schedule-builder#readme",
   "dependencies": {
     "axios": "^0.26.1",
-    "commander": "^9.0.0",
+    "commander": "^9.1.0",
     "jpeg-js": "^0.4.3",
+    "mlbinfo": "^1.0.3",
     "moment-timezone": "^0.5.34",
-    "npm-check-updates": "^12.5.3",
+    "npm-check-updates": "^12.5.5",
     "pureimage": "^0.3.8",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
-    "@types/node": "^17.0.21",
-    "@typescript-eslint/eslint-plugin": "^5.15.0",
-    "@typescript-eslint/parser": "^5.15.0",
-    "eslint": "^8.11.0",
-    "np": "^7.6.0",
-    "prettier": "^2.6.0",
+    "@types/node": "^17.0.23",
+    "@typescript-eslint/eslint-plugin": "^5.17.0",
+    "@typescript-eslint/parser": "^5.17.0",
+    "eslint": "^8.12.0",
+    "np": "^7.6.1",
+    "prettier": "^2.6.2",
     "shx": "^0.3.4",
     "ts-node-dev": "^1.1.8",
-    "typescript": "^4.6.2"
+    "typescript": "^4.6.3"
   },
   "files": [
     "build/**/*",

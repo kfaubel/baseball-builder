@@ -4,10 +4,11 @@
 import { LoggerInterface } from "./Logger";
 import { BaseballImage, ImageResult } from "./BaseballImage";
 import { KacheInterface } from "./Kache";
-import { Team, TeamInfo } from "./TeamInfo";
+//import { Team, TeamInfo } from "./TeamInfo";
 import { ImageWriterInterface } from "./SimpleImageWriter";
 import { BaseballData, GameDay } from "./BaseballData";
-import moment from "moment-timezone";
+import { mlbinfo } from "mlbinfo";
+import moment from "moment-timezone"; // https://momentjs.com/timezone/docs/ &  https://momentjs.com/docs/
 
 // export interface BaseBallBuilderParams {
 //     teamList: Array<string>;
@@ -38,17 +39,25 @@ export class BaseballScheduleBuilder {
 
         try {
             const baseballImage: BaseballImage = new BaseballImage(this.logger, this.cache);
-            const teamInfo: TeamInfo = new TeamInfo();
 
             if (params.teamList === undefined) {
                 this.logger.error("CreateImages: params does not include a teamList");
                 return false;
             }
             
-            for (const teamName of params.teamList) {
-                const team: Team | null = teamInfo.lookupTeam(teamName);
+            for (const itemName of params.teamList) {
+                
+                let teamName = itemName;
 
-                if (team !== null) {
+                // Is it a venue name
+                const venue = mlbinfo.getVenueByShortName(itemName);
+                if (typeof venue !== "undefined") {
+                    teamName = mlbinfo.getTeamByVenueId(venue.id)?.abbreviation;
+                }
+
+                const team = mlbinfo.getTeamByAbbreviation(teamName);
+
+                if (typeof team !== "undefined") {
                     // We need to use the date for the team location.  
                     // It may be Tuesday 5/24/2022 in UTC or ET but its Monday 5/23/2022 in Seattle
                     const nowMoment = moment().tz(team.timeZone);
@@ -65,10 +74,10 @@ export class BaseballScheduleBuilder {
 
                     //(`dayList for ${team.abbreviation}\n${JSON.stringify(dayList, null, 4)}`);
                 
-                    const result: ImageResult | null = await baseballImage.getImage(teamName, dayList);
+                    const result: ImageResult | null = await baseballImage.getImage(teamName, dayList, venue?.id);
 
                     if (result !== null && result.imageData !== null) {
-                        const fileName = `${teamName}.jpg`;
+                        const fileName = `${itemName}.jpg`;
                         this.logger.info(`CreateImages:   Writing from data: ${fileName}`);
                         this.writer.saveFile(fileName, result.imageData.data);
                     } else {
@@ -79,9 +88,12 @@ export class BaseballScheduleBuilder {
                     this. logger.error(`CreateImages: Unable to find team ${teamName}`);
                 }
             }
-        } catch (e:any) {
-            this.logger.error(`CreateImages: exception: ${e}`);
-            this.logger.error(`Stack: ${e.stack}`);
+        } catch (e) {
+            if (e instanceof Error) {
+                this.logger.error(`BaseballStandingsBuilder: ${e.stack}`);
+            } else {
+                this.logger.error(`${e}`);
+            }
         }
 
         return exitStatus;
