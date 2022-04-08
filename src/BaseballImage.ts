@@ -259,15 +259,15 @@ export class BaseballImage {
                 switch (game.detailedState) {
                 case "In Progress":
                     if (game.home_name_abbrev === team.abbreviation) {
-                        usRuns = game.home_team_runs as string;
-                        themRuns = game.away_team_runs as string;
+                        usRuns = game.home_team_runs ?? "";
+                        themRuns = game.away_team_runs ?? "";
                     } else {
-                        usRuns = game.away_team_runs as string;
-                        themRuns = game.home_team_runs as string;
+                        usRuns = game.away_team_runs ?? "";
+                        themRuns = game.home_team_runs ?? "";
                     }
 
-                    if (game.top_inning === undefined || game.top_inning as string !== "?") {
-                        if (game.top_inning as string === "Y") {
+                    if (game.top_inning !== undefined && game.top_inning !== "?") {
+                        if (game.top_inning === "Y") {
                             topStr = "Top "; //"\u25B2"; // up arrow
                         } else {
                             topStr = "Bot "; //"\u25BC"; // down arrow
@@ -282,13 +282,7 @@ export class BaseballImage {
                         inningStr = game.inning;
                     }
 
-                    gameText =
-                            usRuns +
-                            "-" +
-                            themRuns +
-                            "   " +
-                            topStr +
-                            inningStr;
+                    gameText = `${usRuns}-${themRuns}   ${topStr}${inningStr}`;
                     break;
                 case "Warmup":
                     gameText = "Warm up";
@@ -305,27 +299,27 @@ export class BaseballImage {
                 case "Completed Early":
                 case "Rain":
                     if (game.home_name_abbrev === team.abbreviation) {
-                        usRuns = game.home_team_runs as string;
-                        themRuns = game.away_team_runs as string;
+                        usRuns = game.home_team_runs ?? "";
+                        themRuns = game.away_team_runs ?? "";
                     } else {
-                        usRuns = game.away_team_runs as string;
-                        themRuns = game.home_team_runs as string;
+                        usRuns = game.away_team_runs ?? "";
+                        themRuns = game.home_team_runs ?? "";
                     }
 
                     gameText = usRuns + "-" + themRuns + " F";
                     break;
                 case "Cancelled":
-                    gameText = "Canc " + game.reason ?? "";
+                    gameText = "CANC ";
                     break;
                 case "Postponed":                    
-                    gameText = "PPD " + game.reason ?? "";
+                    gameText = "PPD ";
                     break;
                 case "Suspended":
                 case "Suspended: Rain":
-                    gameText = "SPND " + game.reason ?? "";
+                    gameText = "SPND ";
                     break;
                 default:
-                    gameText = game.detailedState ?? game.abstractState;
+                    gameText = game.detailedState ?? game.abstractState ?? "no state";
                     break;
                 }
 

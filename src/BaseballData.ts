@@ -78,13 +78,13 @@ export type GameList = GameDetails[];
 // Final                  Suspended          
 // Live                   Pre-Game           P                 P            P
 // Live                   Warmup             P                 PW           L
-// Live                   In Propgress       I                 I            L                  Live - active
+// Live                   In Progress        I                 I            L                  Live - active
 // Preview                Scheduled          S                 S            P                  Future game
 // Preview                Delayed Start      P                 PO           P                  
 
 const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
 const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", 
-                             "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
+    "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
 const knownCodedGameState = ["F", "P", "I", "S", "O", "C"];
 const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW"];
 const knownAbstractGameCode = ["F", "P", "L"];
@@ -291,21 +291,21 @@ export class BaseballData {
                     }
                     
                     switch (feedGame.status?.abstractGameState) {
-                        //const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
-                        case "Final":
-                            break;
-                        case "Live":
-                            anyActive = true;
-                            break;
-                        case "Preview":
-                        case "Pre-Game":
-                            anyStillToPlay = true;
-                            break;
-                        default:
-                            this.logger.warn(`BaseballData: Unknown abstractGameState: (Date: ${gameDetail.date} Home: ${gameDetail.home_name_abbrev}):  ${feedGame.status?.abstractGameState}, assuming still to play`);
-                            //this.logger.warn(`  ${JSON.stringify(feedGame.status, null, 4)}`);
-                            anyStillToPlay = true;
-                            break;
+                    //const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
+                    case "Final":
+                        break;
+                    case "Live":
+                        anyActive = true;
+                        break;
+                    case "Preview":
+                    case "Pre-Game":
+                        anyStillToPlay = true;
+                        break;
+                    default:
+                        this.logger.warn(`BaseballData: Unknown abstractGameState: (Date: ${gameDetail.date} Home: ${gameDetail.home_name_abbrev}):  ${feedGame.status?.abstractGameState}, assuming still to play`);
+                        //this.logger.warn(`  ${JSON.stringify(feedGame.status, null, 4)}`);
+                        anyStillToPlay = true;
+                        break;
                     }
 
                     gameList.push(gameDetail);

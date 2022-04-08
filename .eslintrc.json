@@ -33,6 +33,6 @@
             "error",
             "always"
         ],
-        "allowEmptyCatch": true
+        "allowEmptyCatch": 0
     }
 }

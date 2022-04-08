@@ -63,8 +63,6 @@ export class BaseballScheduleBuilder {
                     const nowMoment = moment().tz(team.timeZone);
                     this.logger.verbose(`CreateImages: Starting process for team:  ${teamName} at ${nowMoment.format("MM/DD/YYYY")}`);
 
-                    
-
                     const dayList: Array<GameDay> | null = await this.baseballData.getTeamGames(team.abbreviation, nowMoment);
 
                     if (dayList === null) {
