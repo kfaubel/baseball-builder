@@ -75,7 +75,8 @@ export type GameList = GameDetails[];
 // Final                  Final              F                 FT           F                  Tie
 // Final                  Cancelled          C                 CR           F                  Cancelled
 // Final                  Postponed          
-// Final                  Suspended          
+// Final                  Suspended   
+// Final                  Postponed          D                 DR           F                  reason=Rain       
 // Live                   Pre-Game           P                 P            P
 // Live                   Warmup             P                 PW           L
 // Live                   In Progress        I                 I            L                  Live - active
@@ -85,8 +86,8 @@ export type GameList = GameDetails[];
 const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
 const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", 
     "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
-const knownCodedGameState = ["F", "P", "I", "S", "O", "C"];
-const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW"];
+const knownCodedGameState = ["F", "P", "I", "S", "O", "C", "D"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW", "DR"];
 const knownAbstractGameCode = ["F", "P", "L"];
 
 /**

@@ -289,7 +289,6 @@ export class BaseballImage {
                     break;
                 case "Preview":
                 case "Pre-game":
-                case "Preview":
                 case "Scheduled":
                     gameText = gameTime;
                     break;
@@ -309,10 +308,10 @@ export class BaseballImage {
                     gameText = usRuns + "-" + themRuns + " F";
                     break;
                 case "Cancelled":
-                    gameText = "CANC ";
+                    gameText = "CANC";
                     break;
                 case "Postponed":                    
-                    gameText = "PPD ";
+                    gameText = "PPD";
                     break;
                 case "Suspended":
                 case "Suspended: Rain":
