@@ -1,6 +1,6 @@
 {
   "name": "baseball-schedule-builder",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Module to build MLB schedule images for teams",
   "main": "index.js",
   "types": "index.d.ts",
@@ -10,7 +10,7 @@
     "prestart": "npm run build",
     "pretest": "npm run build",
     "start": "node app.js --newcache --loglevel info    BOS LAD MIL TOR HOU Fenway",
-    "test":  "node app.js --newcache --loglevel verbose BOS LAD MIL Fenway",
+    "test": "node app.js --newcache --loglevel verbose BOS LAD MIL Fenway",
     "prepare": "npm run build",
     "publish": "echo Published.",
     "install": "echo Installed.",
