@@ -322,25 +322,29 @@ export class BaseballData {
             const nowMs: number = moment().valueOf();
             let expirationMs: number; 
 
-            // If any games for this day are still active, keep checking every 5 minutes
+            // If any games for this day are still active, keep checking every 10 minutes, it could be 2AM the next day
             // If the games were yesterday (and finished), keep for 7 days
             // if the games are tomorrow, check early tomorrow
             // If the games are still to play (Warmup, ...) check in 30 minutes
             // Everything else we will check in 6 hours.
+            this.logger.info(`BaseballData:  ${key}: anyActive=${anyActive}, anyStillToPlay=${anyStillToPlay}, noGames=${noGames} `);
 
             if (anyActive) {
-                expirationMs = nowMs + 15 * 60 * 1000; // 5 minutes
-            } else if (gameDayMoment < midnightThisMorning  || noGames) {
-                expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // previous day so it may be useful for up to 7 days
+                expirationMs = nowMs + 10 * 60 * 1000; 
+            } else if (noGames) {
+                expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // no games - save this record for 7 days
+            } else if (gameDayMoment < midnightThisMorning) {
+                expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // previous day - save this record for 7 days
             } else if (gameDayMoment > midnightTonight) {
                 expirationMs = midnightTonight.valueOf() + 5 * 60 * 1000; // 5 minutes after midnight
             } else if (anyStillToPlay) {
-                expirationMs = nowMs + 60 * 60 * 1000; // 30 minutes
+                expirationMs = nowMs + 30 * 60 * 1000; // 30 minutes
             } else {
+                this.logger.warn(`BaseballData: Why are we here?`);
                 expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
             }
 
-            this.logger.verbose(`BaseballData: Updateing cache: ${key}, Expiration: ${moment(expirationMs).format("dddd, MMMM Do YYYY, h:mm:ss a")}`);
+            this.logger.info(`BaseballData:  ${key}: Check again after: ${moment(expirationMs).format("dddd, MMMM Do YYYY, h:mm:ss a Z")}`);
             this.cache.set(key, gameList, expirationMs);
         } catch (e: any) {
             this.logger.error("BaseballData: Read baseball sched data: " + e);
