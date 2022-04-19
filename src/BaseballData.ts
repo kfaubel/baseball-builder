@@ -76,18 +76,22 @@ export type GameList = GameDetails[];
 // Final                  Cancelled          C                 CR           F                  Cancelled
 // Final                  Postponed          
 // Final                  Suspended   
-// Final                  Postponed          D                 DR           F                  reason=Rain       
-// Live                   Pre-Game           P                 P            P
+// Final                  Postponed          D                 DR           F                  reason=Rain 
+// Final                  Postponed          D                 DI           F                  Reason=Inclement Weather      
+// Live                   Pre-Game           P                 P            P                  Check this.
 // Live                   Warmup             P                 PW           L
 // Live                   In Progress        I                 I            L                  Live - active
-// Preview                Scheduled          S                 S            P                  Future game
+// Preview                Pre-Game           P                 P            P                  Future Game - < 1hr??
+// Preview                Scheduled          S                 S            P                  Future game - > 2:10 hr??
 // Preview                Delayed Start      P                 PO           P                  
 
-const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
+// RIght now only abstractGameState and detailedState are used.
+
+const knownAbstractGameStates = ["Final", "Live", "Preview", "Off"];
 const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", 
     "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
 const knownCodedGameState = ["F", "P", "I", "S", "O", "C", "D"];
-const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW", "DR"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW", "DR", "DI"];
 const knownAbstractGameCode = ["F", "P", "L"];
 
 /**
@@ -194,7 +198,7 @@ export class BaseballData {
         const url = `http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=${datePart}`;
 
         this.logger.verbose(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
-        this.logger.info("BaseballData: URL: " + url);
+        //this.logger.info(`BaseballData: ${key} Fetching update: ${url}`);
 
         const options: AxiosRequestConfig = {
             responseType: "json",
@@ -223,7 +227,10 @@ export class BaseballData {
         try {
             let anyActive = false;
             let anyStillToPlay = false;
+            let anyGamesSoon = false;
             let noGames = false;
+            const nowMoment = moment();
+            let soonestGameMoment = moment().add(10, "d"); // Start 10 days from now
 
             // game is actualy an array of objects
             if (Array.isArray(feedList) && feedList.length !== 0) {
@@ -245,6 +252,11 @@ export class BaseballData {
                     const gameMoment = moment(feedGame.gameDate);                    
                     const homeTime = homeTeamInfo?.timeZone ? gameMoment.clone().tz(homeTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"                  
                     const awayTime = awayTeamInfo?.timeZone ? gameMoment.clone().tz(awayTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"
+
+                    // Is this game in the future and sooner than any game we have seen so far?
+                    if (gameMoment.isAfter(nowMoment) && gameMoment.isBefore(soonestGameMoment)) {
+                        soonestGameMoment = gameMoment;
+                    }
                     
                     const gameDetail: GameDetails = {
                         abstractState: feedGame.status?.abstractGameState ?? "",        // Final, ...
@@ -292,15 +304,18 @@ export class BaseballData {
                     }
                     
                     switch (feedGame.status?.abstractGameState) {
-                    //const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
+                    //const knownAbstractGameStates = ["Final", "Live", "Preview", "Off"];
+                    //const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
                     case "Final":
                         break;
                     case "Live":
                         anyActive = true;
                         break;
                     case "Preview":
-                    case "Pre-Game":
                         anyStillToPlay = true;
+                        if (feedGame.status?.detailedState !== undefined && feedGame.status?.detailedState === "Pre-Game" ) {
+                            anyGamesSoon = true;
+                        }
                         break;
                     default:
                         this.logger.warn(`BaseballData: Unknown abstractGameState: (Date: ${gameDetail.date} Home: ${gameDetail.home_name_abbrev}):  ${feedGame.status?.abstractGameState}, assuming still to play`);
@@ -315,11 +330,11 @@ export class BaseballData {
                 this.logger.verbose("BaseballData: No games");
                 noGames = true;
             }
-
-            const midnightThisMorning = moment().clone().hour(0).minute(0).second(0).millisecond(0);
-            const midnightTonight     = moment().clone().hour(23).minutes(59).second(59).millisecond(999);
                     
             const nowMs: number = moment().valueOf();
+            const soonestGameMs = soonestGameMoment.valueOf();
+            const soonestGameDuration = moment.duration(soonestGameMs - nowMs);
+
             let expirationMs: number; 
 
             // If any games for this day are still active, keep checking every 10 minutes, it could be 2AM the next day
@@ -327,24 +342,35 @@ export class BaseballData {
             // if the games are tomorrow, check early tomorrow
             // If the games are still to play (Warmup, ...) check in 30 minutes
             // Everything else we will check in 6 hours.
-            this.logger.info(`BaseballData:  ${key}: anyActive=${anyActive}, anyStillToPlay=${anyStillToPlay}, noGames=${noGames} `);
-
-            if (anyActive) {
-                expirationMs = nowMs + 10 * 60 * 1000; 
-            } else if (noGames) {
+            
+            if (noGames) {
                 expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // no games - save this record for 7 days
-            } else if (gameDayMoment < midnightThisMorning) {
-                expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; // previous day - save this record for 7 days
-            } else if (gameDayMoment > midnightTonight) {
-                expirationMs = midnightTonight.valueOf() + 5 * 60 * 1000; // 5 minutes after midnight
-            } else if (anyStillToPlay) {
-                expirationMs = nowMs + 30 * 60 * 1000; // 30 minutes
             } else {
-                this.logger.warn(`BaseballData: Why are we here?`);
-                expirationMs = nowMs + 6 * 60 * 60 * 1000; // 6 hours
+                // There are games scheduled for this day
+                if (anyActive) {
+                    // Games are underway, update in 10 minutes
+                    expirationMs = nowMs + 10 * 60 * 1000;
+                } else {
+                    // No games are active
+                    if (anyStillToPlay) {
+                        // Still games for this day
+                        //this.logger.info(`BaseballData: ${key}: Soonest future game is in: ${soonestGameDuration.humanize()}`);
+                        if (anyGamesSoon) {
+                            // Some games are in Pre-Game or Warmup
+                            expirationMs = nowMs + 30 * 60 * 1000; // 30 minutes
+                        } else {
+                            // Games start later, maybe not even today
+                            expirationMs = nowMs + 2 * 60 * 60 * 1000; // 6 hours
+                        }
+                    } else {
+                        // All games are finished, possibly on previous days
+                        expirationMs = nowMs + 7 * 24 * 60 * 60 * 1000; 
+                    }
+                }
             }
+            this.logger.info(`BaseballData: ${key}: anyActive: ${anyActive ? "Y" : "N"}, anyStillToPlay: ${anyStillToPlay ? "Y" : "N"}, anyGamesSoon: ${anyGamesSoon ? "Y" : "N"}, noGames: ${noGames ? "Y" : "N"}  Exp: ${moment(expirationMs).format()}`);
 
-            this.logger.info(`BaseballData:  ${key}: Check again after: ${moment(expirationMs).format("dddd, MMMM Do YYYY, h:mm:ss a Z")}`);
+            //this.logger.info(`BaseballData: ${key}:  Recheck after: ${moment(expirationMs).format()}`); //("dddd, MMMM Do YYYY, h:mm:ss a Z")}`);
             this.cache.set(key, gameList, expirationMs);
         } catch (e: any) {
             this.logger.error("BaseballData: Read baseball sched data: " + e);
