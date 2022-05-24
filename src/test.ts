@@ -1,10 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as fs from "fs";
-import path from "path";
 import { Logger } from "./Logger";
-import { BaseballImage, ImageResult } from "./BaseballImage";
 import { Kache } from "./Kache";
-//import { Team, TeamInfo } from "./TeamInfo";
 import { BaseballScheduleBuilder } from "./BaseballScheduleBuilder";
 import { SimpleImageWriter } from "./SimpleImageWriter";
 import { Command } from "commander";

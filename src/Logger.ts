@@ -49,9 +49,7 @@ export class Logger {
     }
 
     public info(text: string): void {
-        if (this.level <= this._INFO) {
-            console.log(`[${this.module} I] ${text}`);
-        } 
+        this.log(text);
     }
 
     public verbose(text: string): void {

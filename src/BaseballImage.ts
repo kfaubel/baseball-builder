@@ -60,7 +60,7 @@ export class BaseballImage {
      */
     public async getImage(teamName: string, dayList: Array<GameDay>, venueId?: string | undefined): Promise<ImageResult | null> {
         
-        const team = mlbinfo.getTeamByAbbreviation(teamName); // teamInfo.lookupTeam(teamName);
+        const team = mlbinfo.getTeamByAbbreviation(teamName); 
         if (typeof team === "undefined") {
             this.logger.error(`Could not find team ${teamName}in teams table`);
             return null;
@@ -120,7 +120,6 @@ export class BaseballImage {
 
             if (dayList[daySlot].games.length === 2) {
                 gameList[nextGameSlot++] = dayList[daySlot].games[1];
-                // console.log("Adding game 2 to the game list");
             }
         }
 
@@ -159,9 +158,7 @@ export class BaseballImage {
         const homeAwayXOffset = 955;
         const opponentXOffset = 1050;
         const gameTextXOffset = 1300;
-
-        //const canvas = createCanvas(imageWidth, imageHeight);
-        //const ctx = canvas.getContext('2d');
+        
         const img = pure.make(imageWidth, imageHeight);
         const ctx = img.getContext("2d");
 
@@ -177,8 +174,6 @@ export class BaseballImage {
 
         // Fill the bitmap
         ctx.fillStyle = backgroundColor;
-        //ctx.lineWidth = boarderStrokeWidth;
-        //ctx.fillRect(0, 0, imageWidth, imageHeight);
         this.myFillRect(img, 0, 0, imageWidth, imageHeight, backgroundColor);
 
         // Draw the title
@@ -190,7 +185,7 @@ export class BaseballImage {
         // Draw the outline
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = boarderStrokeWidth;
-        //ctx.strokeRect(0, 0, imageWidth, imageHeight); // Pure does not seem to use lineWidth in strokeRect
+        
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(imageWidth, 0);
@@ -211,7 +206,7 @@ export class BaseballImage {
         // Draw the box
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = boxStrokeWidth;
-        //ctx.strokeRect(boxLeftX, boxTopY, boxWidth, boxHeight); // Pure does not seem to use lineWidth in strokeRect
+        
         ctx.beginPath();
         ctx.moveTo(boxLeftX - boxStrokeWidth / 2, boxTopY);
         ctx.lineTo(boxWidth, boxTopY);
@@ -272,9 +267,7 @@ export class BaseballImage {
                         } else {
                             topStr = "Bot "; //"\u25BC"; // down arrow
                         }
-                    } else {
-                        topStr = "";
-                    }
+                    } 
 
                     if (game.inning === undefined || game.inning === "?") {
                         inningStr = "Live";

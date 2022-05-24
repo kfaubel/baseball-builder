@@ -5,7 +5,6 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { LoggerInterface } from "./Logger.js";
 import { KacheInterface } from "./Kache.js";
-//import { Team, TeamInfo } from "./TeamInfo";
 import { mlbinfo } from "mlbinfo";
 import moment from "moment-timezone";  // https://momentjs.com/timezone/docs/ &  https://momentjs.com/docs/
 
@@ -137,9 +136,6 @@ interface FeedGame {
  * * If there are no games, this array will be empty
  */
  type FeedList = FeedGame[]; 
-// interface FeedList {
-//     games?: Array<FeedGame>
-// }
 
 export class BaseballData {
     private logger: LoggerInterface;
@@ -152,24 +148,24 @@ export class BaseballData {
 
     /**
      * Quick check to see if there are any changes.
-     * We will scan 3 days back and 5 forward to make sure we are covered since
-     * theMoment could actually be a day ahead of behind the date for the team location
      * 
-     * @param theMoment The time for the OS, not the team we will need to lookup 
-     * @returns 
+     * @param theMoment The time for the team we are checking 
+     * @returns true if the cache is up to date
      */
     public isCacheCurrent(theMoment: moment.Moment): boolean {
         // Get date 2 days ago through 4 days from now.  7 Days total
-        for (let dayIndex = -3; dayIndex <= 5; dayIndex++) { 
+        for (let dayIndex = -2; dayIndex <= 4; dayIndex++) { 
             const aMoment = theMoment.clone();          
             const key = aMoment.add(dayIndex, "d").format("YYYY_MM_DD");
 
             // cache will return null for a missing or expired item
             if (this.cache.get(key) === null) {
+                this.logger.verbose(`BaseballData::IsCacheCurrent key: ${key} not found, cache is not current.`);
                 return false;
             }
         }
         // none of the cache elements were missing or expired
+        this.logger.verbose(`BaseballData::IsCacheCurrent cache is current.`);
         return true;
     }
 
@@ -359,8 +355,17 @@ export class BaseballData {
                             // Some games are in Pre-Game or Warmup
                             expirationMs = nowMs + 30 * 60 * 1000; // 30 minutes
                         } else {
-                            // Games start later, maybe not even today
-                            expirationMs = nowMs + 2 * 60 * 60 * 1000; // 6 hours
+                            if (soonestGameDuration.asMilliseconds() < 60 * 60 * 1000) {
+                                // Not sure how a game can start in less than an hour but not be in Warmup...
+                                expirationMs = nowMs + 60 * 60 * 1000; 
+                            } else if (soonestGameDuration.asMilliseconds() < 26 * 60 * 60 * 1000) {
+                                // Soonest game is within 26 hours, check every 2 hours for changes
+                                // We don't want to check for exactly 24 hours or we could miss the Warmup
+                                expirationMs = nowMs + 2 * 60 * 60 * 1000;
+                            } else {
+                                // soonest game is a day away, check back in 24 hours
+                                expirationMs = nowMs + 24 * 60 * 60 * 1000;
+                            }
                         }
                     } else {
                         // All games are finished, possibly on previous days
@@ -375,7 +380,6 @@ export class BaseballData {
         } catch (e: any) {
             this.logger.error("BaseballData: Read baseball sched data: " + e);
             this.logger.error(`Stack: ${e.stack}`);
-            gameList == null;
         }
             
         return gameList;
