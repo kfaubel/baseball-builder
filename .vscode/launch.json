@@ -11,6 +11,7 @@
             "preLaunchTask": "tsc: build - tsconfig.json",
  //           "preLaunchTask": "typescript",
             "program": "${workspaceFolder}/app.js",
+            "args": ["--newcache", " --loglevel", "verbose", "BOS"],
             "cwd" : "${workspaceFolder}",
             "protocol": "inspector",
             "outFiles": [

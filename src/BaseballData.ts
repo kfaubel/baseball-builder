@@ -193,7 +193,7 @@ export class BaseballData {
         const datePart = gameDayMoment.format("MM/DD/YYYY");
         const url = `http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=${datePart}`;
 
-        this.logger.verbose(`BaseballData: Cache miss for game data: ${key}.  Doing fetch`);
+        this.logger.verbose(`BaseballData: Cache miss for game data: ${key}.  Doing fetch: ${url}`);
         //this.logger.info(`BaseballData: ${key} Fetching update: ${url}`);
 
         const options: AxiosRequestConfig = {

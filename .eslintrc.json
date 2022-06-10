@@ -24,11 +24,6 @@
             "error",
             "windows"
         ],
-        "quotes": [
-            "error",
-            "double",
-            { "allowTemplateLiterals": true }
-        ],
         "semi": [
             "error",
             "always"
