@@ -173,7 +173,7 @@ export class BaseballData {
      * Get all the games for a given data
      * * If there are no games, the array returned will be empty
      * * There could be more than one game for the same team if there is a double header
-     * @param gameDayMoment Moment object
+     * @param gameDayMoment Moment object for the given date
      * @returns an array of games for a given date [{"gamePk": 123456, ...}, ... ]
      */
     private async getGameListForDate(gameDayMoment: moment.Moment): Promise<GameList> {
@@ -244,10 +244,16 @@ export class BaseballData {
                     //const awayTeamInfo: Team = teamInfo.lookupTeam(feedGame.teams.away.team.id);
                     const homeTeamInfo = mlbinfo.getTeamById(feedGame.teams.home.team.id);
                     const awayTeamInfo = mlbinfo.getTeamById(feedGame.teams.away.team.id);
+                    if (typeof homeTeamInfo === "undefined" || typeof awayTeamInfo === "undefined") {
+                        this.logger.warn(`BaseballData::getGameListForDate - Unable to lookup team info for ${feedGame.teams.home.team.id} or ${feedGame.teams.away.team.id}`);
+                        continue;
+                    }
 
-                    const gameMoment = moment(feedGame.gameDate);                    
-                    const homeTime = homeTeamInfo?.timeZone ? gameMoment.clone().tz(homeTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"                  
-                    const awayTime = awayTeamInfo?.timeZone ? gameMoment.clone().tz(awayTeamInfo.timeZone).format("h:mm A") : ""; // "7:05 PM"
+                    const gameMoment = moment(feedGame.gameDate);  // This is a complete ISO-8601 date time string with Zulu timezone  
+                    const homeGameMoment = gameMoment.clone().tz(homeTeamInfo?.timeZone);    
+                    const awayGameMoment = gameMoment.clone().tz(awayTeamInfo?.timeZone);                
+                    const homeTime = homeGameMoment.format("h:mm A"); // "7:05 PM"  
+                    const awayTime = awayGameMoment.format("h:mm A"); // "8:05 PM"  
 
                     // Is this game in the future and sooner than any game we have seen so far?
                     if (gameMoment.isAfter(nowMoment) && gameMoment.isBefore(soonestGameMoment)) {
@@ -260,8 +266,8 @@ export class BaseballData {
                         reason: feedGame.status?.reason,
                         series: (feedGame.gameType === "R" ? "Regular Season" : ""),    // Regular Season
                         game_type: feedGame.gameType ?? "",                             // R
-                        day: gameMoment.format("ddd"),                                  // Tue
-                        date: gameMoment.format("MMM D"),                               // May 5
+                        day: homeGameMoment.format("ddd"),                              // Tue
+                        date: homeGameMoment.format("MMM D"),                           // May 5
                         home_time: homeTime,                                            // 7:05 PM
                         away_time: awayTime,                                            // 10:05 PM
                         home_team_runs: feedGame.teams.home.score !== undefined ? feedGame.teams.home.score.toString() : "",
@@ -272,7 +278,7 @@ export class BaseballData {
                         top_inning: "?"
                     };
                       
-                    const gameStr = `${gameMoment.format("MMM DD")} ${gameDetail.home_name_abbrev} v ${gameDetail.away_name_abbrev}       `;
+                    const gameStr = `${homeGameMoment.format("MMM DD")} ${gameDetail.home_name_abbrev} v ${gameDetail.away_name_abbrev}       `;
 
                     if (!knownAbstractGameStates.includes(feedGame.status?.abstractGameState ?? "undefined")) {
                         this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown abstractGameState: ${feedGame.status?.abstractGameState} `);

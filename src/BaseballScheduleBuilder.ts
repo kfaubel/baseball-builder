@@ -64,6 +64,7 @@ export class BaseballScheduleBuilder {
                     continue;
                 }
 
+                // const nowMoment = moment("20220803").tz(team.timeZone); // Test for a specific day
                 const nowMoment = moment().tz(team.timeZone);
                 this.logger.verbose(`CreateImages: Starting process for team:  ${teamName} at ${nowMoment.format("MM/DD/YYYY")}`);
 
@@ -101,7 +102,7 @@ export class BaseballScheduleBuilder {
 
                 // We need to use the date for the team location.  
                 // It may be Tuesday 5/24/2022 in UTC or ET but its Monday 5/23/2022 in Seattle
-                // const nowMoment = moment("20220619").tz(team.timeZone); // Test for a specific day
+                // const nowMoment = moment("20220803").tz(item.team.timeZone); // Test for a specific day
                 const nowMoment = moment().tz(item.team.timeZone);
                 this.logger.verbose(`CreateImages: Starting process for team:  ${item.team.abbreviation} at ${nowMoment.format("MM/DD/YYYY")}`);
 

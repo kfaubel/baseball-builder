@@ -278,12 +278,14 @@ export class BaseballImage {
                     gameText = `${usRuns}-${themRuns}   ${topStr}${inningStr}`;
                     break;
                 case "Warmup":
-                    gameText = "Warm up";
+                    gameText = gameTime + " +";
                     break;
                 case "Preview":
-                case "Pre-game":
                 case "Scheduled":
                     gameText = gameTime;
+                    break;
+                case "Pre-Game":
+                    gameText = gameTime + " +";
                     break;
                 case "Final":
                 case "Final: Tied":
