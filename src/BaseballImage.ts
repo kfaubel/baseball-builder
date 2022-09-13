@@ -252,6 +252,7 @@ export class BaseballImage {
                 // const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
                 // const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
                 switch (game.detailedState) {
+                case "Manager challenge":
                 case "In Progress":
                     if (game.home_name_abbrev === team.abbreviation) {
                         usRuns = game.home_team_runs ?? "";

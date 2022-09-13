@@ -80,17 +80,20 @@ export type GameList = GameDetails[];
 // Live                   Pre-Game           P                 P            P                  Check this.
 // Live                   Warmup             P                 PW           L
 // Live                   In Progress        I                 I            L                  Live - active
+// Live                   Manager challenge  M                 MA           L                  reason=Tag play
 // Preview                Pre-Game           P                 P            P                  Future Game - < 1hr??
 // Preview                Scheduled          S                 S            P                  Future game - > 2:10 hr??
 // Preview                Delayed Start      P                 PO           P                  
+// Preview                Delayed Start      P                 PR           P                  Rain?       
+// 
 
 // RIght now only abstractGameState and detailedState are used.
 
 const knownAbstractGameStates = ["Final", "Live", "Preview", "Off"];
 const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", 
-    "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start"];
-const knownCodedGameState = ["F", "P", "I", "S", "O", "C", "D"];
-const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW", "DR", "DI"];
+    "In Progress", "Scheduled", "Postponed", "Suspended", "Delayed Start", "Manager challenge"];
+const knownCodedGameState = ["F", "P", "I", "S", "O", "C", "D", "M"];
+const knownStatusCodes = ["F", "P", "I", "S", "FT", "FO", "OO", "O", "CR", "FR", "PW", "DR", "DI", "MA", "PO", "PR"];
 const knownAbstractGameCode = ["F", "P", "L"];
 
 /**
@@ -187,7 +190,7 @@ export class BaseballData {
             return cachedGameList;
         }
 
-        let feedList: FeedList = [];
+        let feedList: FeedList | null = [];
         const gameList: GameList = [];
         
         const datePart = gameDayMoment.format("MM/DD/YYYY");
@@ -203,7 +206,7 @@ export class BaseballData {
             },
             timeout: 20000
         };
-        
+
         const startTime = new Date();
         await axios.get(url, options)
             .then((res: AxiosResponse) => {
@@ -214,12 +217,21 @@ export class BaseballData {
                 if (typeof res?.data?.dates?.[0]?.games !== "undefined" ) {
                     feedList = res.data.dates[0].games as FeedList;
                 }
-                
             })
             .catch((error: any) => {
                 this.logger.warn(`BaseballData: URL: ${url} No data: ${error})`);
+                feedList = null;
             });
         
+        // At this point feedList will be one of:
+        // * An array with games - GET succeeded and there were games that day
+        // * An empty array      - GET succeeded but there were no games
+        // * null                - GET failed
+        if (feedList === null) {
+            this.logger.warn(`BaseballData: getGameListForDate: Return empty list without writing cache`);
+            return gameList;
+        }
+
         try {
             let anyActive = false;
             let anyStillToPlay = false;
@@ -281,27 +293,27 @@ export class BaseballData {
                     const gameStr = `${homeGameMoment.format("MMM DD")} ${gameDetail.home_name_abbrev} v ${gameDetail.away_name_abbrev}       `;
 
                     if (!knownAbstractGameStates.includes(feedGame.status?.abstractGameState ?? "undefined")) {
-                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown abstractGameState: ${feedGame.status?.abstractGameState} `);
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 16)} Unknown abstractGameState: ${feedGame.status?.abstractGameState} `);
                         this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
                     }
 
                     if (!knownDetailedStates.includes(feedGame.status?.detailedState ?? "undefined")) {
-                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown detailedState: ${feedGame.status?.detailedState} `);
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 16)} Unknown detailedState: ${feedGame.status?.detailedState} `);
                         this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
                     }
 
                     if (!knownCodedGameState.includes(feedGame.status?.codedGameState ?? "undefined")) {
-                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown codedGameState: ${feedGame.status?.codedGameState} `);
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 16)} Unknown codedGameState: ${feedGame.status?.codedGameState} `);
                         this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
                     }
 
                     if (!knownStatusCodes.includes(feedGame.status?.statusCode ?? "undefined")) {
-                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown statusCode: ${feedGame.status?.statusCode} `);
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 16)} Unknown statusCode: ${feedGame.status?.statusCode} `);
                         this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
                     }
 
                     if (!knownAbstractGameCode.includes(feedGame.status?.abstractGameCode ?? "undefined")) {
-                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 15)} Unknown abstractGameCode: ${feedGame.status?.abstractGameCode} `);
+                        this.logger.info(`BaseballData: +++ ${gameStr.substring(0, 16)} Unknown abstractGameCode: ${feedGame.status?.abstractGameCode} `);
                         this.logger.info(`basebllDataa: +++ Full Status: ${JSON.stringify(feedGame.status, null, 4)}`);
                     }
                     

@@ -5,7 +5,7 @@ import { LoggerInterface } from "./Logger";
 
 interface KacheItem {
     expiration: number;
-    comment: string;
+    expirationStr: string;
     item: unknown;
 }
 
@@ -102,10 +102,10 @@ export class Kache implements KacheInterface {
     }
 
     public set(key: string, newItem: unknown, expirationTime: number): void {
-        const comment: string = new Date(expirationTime).toString();
-        (this.detailedLogging) && this.logger.verbose(`Cache set: Key: ${key}, exp: ${comment}`);
+        const expirationStr = `${new Date(expirationTime).toString()}`;
+        (this.detailedLogging) && this.logger.verbose(`Cache set: Key: ${key}, expires: ${expirationStr}`);
 
-        const cacheItem = {expiration: expirationTime, comment: comment, item: newItem};
+        const cacheItem = {expiration: expirationTime, expirationStr: expirationStr, item: newItem};
         this.cacheStorage[key as keyof CacheStorage] =  cacheItem;
 
         // Does this need to be synchronous?
