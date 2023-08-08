@@ -39,7 +39,12 @@ export class Kache implements KacheInterface {
 
         if (newCache) {
             this.logger.info("Cache: removing any previous cache.");
-            fs.unlinkSync(this.cachePath);
+            try {
+                fs.unlinkSync(this.cachePath);
+            // eslint-disable-next-line no-empty
+            } catch(e) {
+                // No harm, no foul
+            }
         }
 
         this.cacheStorage = {};
