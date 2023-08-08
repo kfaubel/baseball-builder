@@ -6,7 +6,7 @@ import * as pure from "pureimage";
 import { KacheInterface  } from "./Kache.js";
 import { LoggerInterface } from "./Logger.js";
 import { GameDay, GameDetails } from "./BaseballData";
-import { Team, TeamInfo } from "./TeamInfo";
+import { mlbinfo } from "mlbinfo";
 
 export interface ImageResult {
     imageType: string;
@@ -55,14 +55,34 @@ export class BaseballImage {
      * Generate an image with the schedule, scores, times, etc. for a given team
      * @param teamName "BOS"
      * @param dayList Array of 7 days of games (2 back, present and 4 forward) 
+     * @param venueId Id of the venue to use for colors, undefined uses the team colors
      * @returns 
      */
-    public async getImage(teamName: string, dayList: Array<GameDay>): Promise<ImageResult | null> {
-        const teamInfo: TeamInfo = new TeamInfo();
-        const team: Team | null = teamInfo.lookupTeam(teamName);
-        if (team === null) {
+    public async getImage(teamName: string, dayList: Array<GameDay>, venueId?: string | undefined): Promise<ImageResult | null> {
+        
+        const team = mlbinfo.getTeamByAbbreviation(teamName); 
+        if (typeof team === "undefined") {
             this.logger.error(`Could not find team ${teamName}in teams table`);
             return null;
+        }
+
+        // Default is to use the team colors
+        let backgroundColor = team.backgroundColor;
+        let textColor = team.textColor;
+        let accentColor = team.accentColor;
+
+        // If a valid venue was specified, use its colors.
+        if (typeof venueId !== "undefined") {
+            this.logger.verbose(`Using venue: ${venueId}`);
+            const venue = mlbinfo.getVenueById(venueId);  
+            if (typeof venue !== "undefined") {
+                this.logger.verbose(`Using colores for venue: ${venue.name}`);
+                backgroundColor = venue.backgroundColor;
+                textColor = venue.textColor;
+                accentColor = venue.accentColor;
+            } else {
+                this.logger.warn(`Unable to get venue for Id: ${venueId}`);
+            }
         }
 
         // Now sort through the 7 days of games to see which ones to show.
@@ -100,7 +120,6 @@ export class BaseballImage {
 
             if (dayList[daySlot].games.length === 2) {
                 gameList[nextGameSlot++] = dayList[daySlot].games[1];
-                // console.log("Adding game 2 to the game list");
             }
         }
 
@@ -139,9 +158,7 @@ export class BaseballImage {
         const homeAwayXOffset = 955;
         const opponentXOffset = 1050;
         const gameTextXOffset = 1300;
-
-        //const canvas = createCanvas(imageWidth, imageHeight);
-        //const ctx = canvas.getContext('2d');
+        
         const img = pure.make(imageWidth, imageHeight);
         const ctx = img.getContext("2d");
 
@@ -156,21 +173,19 @@ export class BaseballImage {
         const title: string = team.name + " Schedule";
 
         // Fill the bitmap
-        ctx.fillStyle = team.backgroundColor;
-        //ctx.lineWidth = boarderStrokeWidth;
-        //ctx.fillRect(0, 0, imageWidth, imageHeight);
-        this.myFillRect(img, 0, 0, imageWidth, imageHeight, team.backgroundColor);
+        ctx.fillStyle = backgroundColor;
+        this.myFillRect(img, 0, 0, imageWidth, imageHeight, backgroundColor);
 
         // Draw the title
-        ctx.fillStyle = team.textColor;
+        ctx.fillStyle = textColor;
         ctx.font = titleFont;
         const textWidth: number = ctx.measureText(title).width;
         ctx.fillText(title, (imageWidth - textWidth) / 2, TitleOffset);
 
         // Draw the outline
-        ctx.strokeStyle = team.accentColor;
+        ctx.strokeStyle = accentColor;
         ctx.lineWidth = boarderStrokeWidth;
-        //ctx.strokeRect(0, 0, imageWidth, imageHeight); // Pure does not seem to use lineWidth in strokeRect
+        
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(imageWidth, 0);
@@ -189,9 +204,9 @@ export class BaseballImage {
         const boxLeftX = boxHorMargin;
 
         // Draw the box
-        ctx.strokeStyle = team.accentColor;
+        ctx.strokeStyle = accentColor;
         ctx.lineWidth = boxStrokeWidth;
-        //ctx.strokeRect(boxLeftX, boxTopY, boxWidth, boxHeight); // Pure does not seem to use lineWidth in strokeRect
+        
         ctx.beginPath();
         ctx.moveTo(boxLeftX - boxStrokeWidth / 2, boxTopY);
         ctx.lineTo(boxWidth, boxTopY);
@@ -208,8 +223,8 @@ export class BaseballImage {
             const gameDay = game.day;
             const gameDate = game.date;
 
-            if (game.status !== "OFF") {
-                ctx.fillStyle = team.textColor;
+            if (game.abstractState !== "Off") {
+                ctx.fillStyle = textColor;
                 ctx.font = gamesFont;
 
                 let opponent = "";
@@ -217,6 +232,7 @@ export class BaseballImage {
                 let themRuns = "";
                 let homeAway = "";
                 let topStr = "";
+                let inningStr = "";
                 let gameTime = "";
 
                 if (game.home_name_abbrev === team.abbreviation) {
@@ -230,61 +246,75 @@ export class BaseballImage {
                 }
 
                 let gameText = "";
-                switch (game.status) {
+
+                // With new data feed, game.status can be "Final", "Live", Preview"
+                // From baseballData.ts:
+                // const knownAbstractGameStates = ["Final", "Live", "Preview", "Pre-Game", "Off"];
+                // const knownDetailedStates = ["Final", "Completed Early", "Cancelled", "Game Over", "Warmup", "Pre-Game", "In Progress", "Scheduled"];
+                switch (game.detailedState) {
+                case "Manager challenge":
                 case "In Progress":
                     if (game.home_name_abbrev === team.abbreviation) {
-                        usRuns = game.home_team_runs as string;
-                        themRuns = game.away_team_runs as string;
+                        usRuns = game.home_team_runs ?? "";
+                        themRuns = game.away_team_runs ?? "";
                     } else {
-                        usRuns = game.away_team_runs as string;
-                        themRuns = game.home_team_runs as string;
+                        usRuns = game.away_team_runs ?? "";
+                        themRuns = game.home_team_runs ?? "";
                     }
 
-                    if (game.top_inning as string === "Y") {
-                        topStr = "Top "; //"\u25B2"; // up arrow
+                    if (game.top_inning !== undefined && game.top_inning !== "?") {
+                        if (game.top_inning === "Y") {
+                            topStr = "Top "; //"\u25B2"; // up arrow
+                        } else {
+                            topStr = "Bot "; //"\u25BC"; // down arrow
+                        }
+                    } 
+
+                    if (game.inning === undefined || game.inning === "?") {
+                        inningStr = "Live";
                     } else {
-                        topStr = "Bot "; //"\u25BC"; // down arrow
+                        inningStr = game.inning;
                     }
 
-                    gameText =
-                            usRuns +
-                            "-" +
-                            themRuns +
-                            "   " +
-                            topStr +
-                            game.inning;
+                    gameText = `${usRuns}-${themRuns}   ${topStr}${inningStr}`;
                     break;
                 case "Warmup":
-                    gameText = "Warm up";
+                    gameText = gameTime + " +";
                     break;
-                case "Pre-game":
                 case "Preview":
                 case "Scheduled":
                     gameText = gameTime;
                     break;
+                case "Pre-Game":
+                    gameText = gameTime + " +";
+                    break;
                 case "Final":
                 case "Final: Tied":
                 case "Game Over":
-                case "Completed Early: Rain":
+                case "Completed Early":
+                case "Rain":
                     if (game.home_name_abbrev === team.abbreviation) {
-                        usRuns = game.home_team_runs as string;
-                        themRuns = game.away_team_runs as string;
+                        usRuns = game.home_team_runs ?? "";
+                        themRuns = game.away_team_runs ?? "";
                     } else {
-                        usRuns = game.away_team_runs as string;
-                        themRuns = game.home_team_runs as string;
+                        usRuns = game.away_team_runs ?? "";
+                        themRuns = game.home_team_runs ?? "";
                     }
 
                     gameText = usRuns + "-" + themRuns + " F";
                     break;
-                case "Postponed":
+                case "Cancelled":
+                    gameText = "CANC";
+                    break;
+                case "Postponed":                    
                     gameText = "PPD";
                     break;
                 case "Suspended":
                 case "Suspended: Rain":
-                    gameText = "SPND";
+                    gameText = "SPND ";
                     break;
                 default:
-                    gameText = game.status;
+                    gameText = game.detailedState ?? game.abstractState ?? "no state";
                     break;
                 }
 

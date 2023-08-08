@@ -1,4 +1,4 @@
-declare module "baseball-builder";
+declare module "baseball-schedule-builder";
 
 export interface LoggerInterface {
     error(text: string): void;
@@ -18,7 +18,7 @@ export interface ImageWriterInterface {
     saveFile(fileName: string, buf: Buffer): void;
 }
 
-export declare class BaseballBuilder {
+export declare class BaseballScheduleBuilder {
     private logger;
     private cache;
     private writer;

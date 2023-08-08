@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as fs from "fs";
-import path from "path";
 import { Logger } from "./Logger";
-import { BaseballImage, ImageResult } from "./BaseballImage";
 import { Kache } from "./Kache";
-import { Team, TeamInfo } from "./TeamInfo";
-import { BaseballBuilder } from "./BaseballBuilder";
+import { BaseballScheduleBuilder } from "./BaseballScheduleBuilder";
 import { SimpleImageWriter } from "./SimpleImageWriter";
 import { Command } from "commander";
 
@@ -26,29 +23,27 @@ async function run() {
 
     const options = program.opts();
 
+    const logLevel = options.loglevel.toLowerCase();
+
     const logLevels = ["error", "warn", "info", "verbose"];
-    if (!logLevels.includes(options.loglevel.toLowerCase())) {
+    if (!logLevels.includes(logLevel)) {
         console.log(`Unknown log level: ${options.loglevel}`);
         return false;
     } 
 
-    console.log(teamList);
-
-    const logLevel = options.loglevel.toLowerCase();
-
-    const logger = new Logger("baseball-builder", logLevel);
+    const logger = new Logger("baseball-schedule-builder", logLevel);
 
     const cache: Kache = new Kache(logger, "baseball-sched-cache.json", options.newcache, (logLevel == "verbose"));
 
     const simpleImageWriter: SimpleImageWriter = new SimpleImageWriter(logger, "teams");
-    const baseballBuilder: BaseballBuilder = new BaseballBuilder(logger, cache, simpleImageWriter);
+    const baseballScheduleBuilder: BaseballScheduleBuilder = new BaseballScheduleBuilder(logger, cache, simpleImageWriter);
     
     fs.mkdirSync("./teams/", { recursive: true });
 
-    const teamInfo: TeamInfo = new TeamInfo();
+    //const teamInfo: TeamInfo = new TeamInfo();
     //const teamList = teamInfo.getTeamsList(); 
     //const teamList = ["BOS", "NYM", "CHC", "FENWAY"];
-    const success: boolean = await baseballBuilder.CreateImages({teamList: teamList});
+    const success: boolean = await baseballScheduleBuilder.CreateImages({teamList: teamList});
 
     return success ? 0 : 1;
 }
