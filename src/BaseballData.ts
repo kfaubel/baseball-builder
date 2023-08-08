@@ -11,6 +11,7 @@ import moment from "moment-timezone";  // https://momentjs.com/timezone/docs/ & 
 // From a post on reddit.   This may be what's next
 // You don't actually need a login to get at the data. I found most of the endpoints by watching MLB Gameday's
 // http requests during the season and working backwards.
+// Endpoints: https://statsapi.mlb.com/docs/endpoints/standings
 // Here are some endpoints:
 // MLB Schedule - http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1
 // MLB Schedule for April 10th, 2018 - http://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=04/10/2018

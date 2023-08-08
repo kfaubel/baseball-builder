@@ -6,11 +6,9 @@
   "types": "index.d.ts",
   "scripts": {
     "build": "npm run clean && tsc",
-    "clean": "shx rm -rf build teams/*",
-    "prestart": "npm run build",
-    "pretest": "npm run build",
-    "start": "node app.js --newcache --loglevel verbose BOS LAD MIL TOR HOU Fenway",
-    "test": "node  app.js --newcache --loglevel verbose BOS",
+    "clean": "shx rm -rf build",
+    "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL FENWAY",
+    "start": "npm run build && node app.js --newcache BOS LAD MIL FENWAY",
     "prepare": "npm run build",
     "publish": "npm publish && echo Published.",
     "lint": "eslint"
