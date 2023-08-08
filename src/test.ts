@@ -40,8 +40,6 @@ async function run() {
     
     fs.mkdirSync("./teams/", { recursive: true });
 
-    //const teamInfo: TeamInfo = new TeamInfo();
-    //const teamList = teamInfo.getTeamsList(); 
     //const teamList = ["BOS", "NYM", "CHC", "FENWAY"];
     const success: boolean = await baseballScheduleBuilder.CreateImages({teamList: teamList});
 

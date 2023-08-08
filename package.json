@@ -1,6 +1,6 @@
 {
   "name": "baseball-schedule-builder",
-  "version": "1.1.13",
+  "version": "1.2.0",
   "description": "Module to build MLB schedule images for teams",
   "main": "index.js",
   "types": "index.d.ts",
@@ -12,8 +12,7 @@
     "start": "node app.js --newcache --loglevel verbose BOS LAD MIL TOR HOU Fenway",
     "test": "node  app.js --newcache --loglevel verbose BOS",
     "prepare": "npm run build",
-    "publish": "echo Published.",
-    "install": "echo Installed.",
+    "publish": "npm publish && echo Published.",
     "lint": "eslint"
   },
   "repository": {
@@ -27,24 +26,24 @@
   },
   "homepage": "https://github.com/kfaubel/baseball-schedule-builder#readme",
   "dependencies": {
-    "axios": "^0.27.2",
-    "commander": "^9.4.0",
+    "axios": "^1.4.0",
+    "commander": "^11.0.0",
     "jpeg-js": "^0.4.4",
     "mlbinfo": "^1.0.3",
-    "moment-timezone": "^0.5.37",
-    "npm-check-updates": "^16.1.2",
-    "pureimage": "^0.3.14",
+    "moment-timezone": "^0.5.43",
+    "npm-check-updates": "^16.10.18",
+    "pureimage": "^0.3.17",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
-    "@types/node": "^18.7.17",
-    "@typescript-eslint/eslint-plugin": "^5.37.0",
-    "@typescript-eslint/parser": "^5.37.0",
-    "eslint": "^8.23.1",
-    "np": "^3.0.4",
+    "@types/node": "^20.4.8",
+    "@typescript-eslint/eslint-plugin": "^6.3.0",
+    "@typescript-eslint/parser": "^6.3.0",
+    "eslint": "^8.46.0",
+    "np": "^8.0.4",
     "shx": "^0.3.4",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^4.8.3"
+    "typescript": "^5.1.6"
   },
   "files": [
     "build/**/*",

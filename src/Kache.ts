@@ -41,7 +41,9 @@ export class Kache implements KacheInterface {
             this.logger.info(`Cache: removing any previous cache.`);
             try {
                 fs.unlinkSync(this.cachePath);
-            } catch (e) {}
+            } catch (e) {
+                // ignore
+            }
         }
 
         this.cacheStorage = {};
@@ -74,7 +76,7 @@ export class Kache implements KacheInterface {
 
     // Quick check to see if the cache is up to date
     public check(key: string): boolean {
-        const cacheItem: KacheItem = this.cacheStorage[key as keyof CacheStorage];
+        const cacheItem: KacheItem = this.cacheStorage[key as keyof KacheStorage];
         if (cacheItem === undefined) {
             return false;
         }
@@ -83,7 +85,7 @@ export class Kache implements KacheInterface {
     }    
 
     public get(key: string): unknown {
-        const cacheItem: KacheItem = this.cacheStorage[key as keyof CacheStorage];
+        const cacheItem: KacheItem = this.cacheStorage[key as keyof KacheStorage];
         if (cacheItem !== undefined) {
             if (cacheItem.expiration > new Date().getTime()) {
                 // object is current
@@ -106,7 +108,7 @@ export class Kache implements KacheInterface {
         (this.detailedLogging) && this.logger.verbose(`Cache set: Key: ${key}, expires: ${expirationStr}`);
 
         const cacheItem = {expiration: expirationTime, expirationStr: expirationStr, item: newItem};
-        this.cacheStorage[key as keyof CacheStorage] =  cacheItem;
+        this.cacheStorage[key as keyof KacheStorage] =  cacheItem;
 
         // Does this need to be synchronous?
         fs.writeFileSync(this.cachePath, JSON.stringify(this.cacheStorage, null, 4));
