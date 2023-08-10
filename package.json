@@ -10,7 +10,7 @@
     "test": "npm run build && node app.js --newcache --loglevel verbose BOS LAD MIL FENWAY",
     "start": "npm run build && node app.js --newcache BOS LAD MIL FENWAY",
     "prepare": "npm run build",
-    "publish": "npm publish && echo Published.",
+    "publish": "echo Published.",
     "lint": "eslint"
   },
   "repository": {
